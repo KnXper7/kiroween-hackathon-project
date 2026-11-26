@@ -1,0 +1,660 @@
+/* The Underside: upside-down, analog-horror descent after the title sequence (js/underside/main.js). */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Descent choice on the arrival screen ---------- */
+.descent {
+  margin-top: 2.2rem;
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+}
+
+.descent__warning {
+  margin: 0;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(236, 228, 214, 0.82);
+  text-align: center;
+}
+
+.descent__warning span {
+  display: block;
+  color: rgba(236, 228, 214, 0.55);
+}
+
+.descent__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.descent__actions .button {
+  min-height: 44px;
+}
+
+body.is-descending .escape-arrival__content {
+  animation: descent-turn 1.6s cubic-bezier(0.7, 0, 0.84, 0) forwards;
+}
+
+@keyframes descent-turn {
+  0% { transform: none; filter: none; }
+  18% { transform: translateX(-6px) skewX(4deg); filter: blur(0.5px) contrast(1.4); }
+  24% { transform: translateX(8px); filter: none; }
+  100% { transform: rotate(180deg) scale(0.6); opacity: 0; filter: blur(6px); }
+}
+
+/* ---------- World ---------- */
+html.is-underside,
+html.is-underside body {
+  background: #000;
+  scroll-behavior: auto;
+}
+
+html.is-underside-locked,
+html.is-underside-locked body {
+  overflow: hidden;
+}
+
+.underside {
+  --dread: 0;
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  background: #000;
+  color: #e9e3d6;
+}
+
+.underside[hidden],
+.outside[hidden] {
+  display: none;
+}
+
+.underside-spacer {
+  width: 1px;
+  height: 0;
+}
+
+.underside__world {
+  position: absolute;
+  inset: 0;
+  transform: rotate(180deg);
+  transform-origin: 50% 50%;
+  will-change: transform;
+}
+
+.underside__track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  will-change: transform;
+}
+
+.u-beat {
+  position: relative;
+  width: 100%;
+}
+
+/* Gallery: a quiet museum of old photographs and paintings. */
+.u-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 26vh;
+  padding: 45vh 6vw 50vh;
+  background:
+    radial-gradient(ellipse 60% 30% at 50% 10%, rgba(120, 104, 80, 0.16), transparent 70%),
+    linear-gradient(#060504, #0b0907 40%, #040303);
+}
+
+.u-frame {
+  margin: 0;
+  width: min(44vw, 420px);
+  display: grid;
+  gap: 0.9rem;
+}
+
+.u-frame--0 { margin-left: 6vw; }
+.u-frame--1 { margin-left: auto; margin-right: 8vw; }
+.u-frame--2 { margin-left: 22vw; }
+.u-frame--3 { margin-left: auto; margin-right: 20vw; }
+
+.u-frame__inner {
+  position: relative;
+  border: 14px solid #1c150f;
+  outline: 1px solid rgba(160, 130, 90, 0.25);
+  box-shadow:
+    inset 0 0 40px rgba(0, 0, 0, 0.9),
+    0 40px 90px rgba(0, 0, 0, 0.9);
+  background: #000;
+}
+
+.u-frame__inner img {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: grayscale(0.85) sepia(0.35) contrast(1.15) brightness(calc(0.82 - var(--dread) * 0.35));
+}
+
+.u-frame__inner--empty {
+  aspect-ratio: 3 / 4;
+  background: radial-gradient(circle at 50% 40%, #0d0c0b, #000 70%);
+}
+
+.u-frame__ghost {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  mix-blend-mode: screen;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.u-frame.is-changed .u-frame__ghost {
+  opacity: 1;
+}
+
+.u-frame figcaption {
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: 1.15rem;
+  letter-spacing: 0.12em;
+  color: rgba(190, 176, 150, 0.6);
+}
+
+.u-frame__you {
+  color: rgba(225, 214, 190, 0.85) !important;
+}
+
+/* Pinned beats: a tall section with a full-screen canvas that the script holds in place. */
+.u-pinned > canvas,
+.u-exit > canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  will-change: transform;
+}
+
+.u-enhance { height: 360vh; background: #000; }
+.u-eyes { height: 320vh; background: #020203; }
+.u-broadcast { height: 480vh; background: #030303; }
+.u-exit { height: 120vh; background: #000; }
+.u-exit > canvas { top: auto; bottom: 0; }
+
+/* Rooms: the same doorway, again and again. */
+.u-rooms {
+  display: flex;
+  flex-direction: column;
+  gap: 12vh;
+  padding: 20vh 0;
+  background: #030302;
+}
+
+.u-room {
+  position: relative;
+  height: 86vh;
+}
+
+.u-room > canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.u-room__label {
+  position: absolute;
+  top: 4vh;
+  left: 6vw;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  letter-spacing: 0.14em;
+  color: rgba(230, 222, 200, 0.75);
+  text-shadow: 2px 0 rgba(255, 60, 60, 0.35), -2px 0 rgba(60, 200, 255, 0.35);
+}
+
+/* ---------- Upright overlays (the "camera" stays the right way up) ---------- */
+.underside__spline,
+.underside__static,
+.underside__scanlines,
+.underside__tracking,
+.underside__vignette,
+.underside__scare {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.spline-slot {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity 0.6s linear;
+}
+
+.underside__static {
+  image-rendering: pixelated;
+  mix-blend-mode: screen;
+  opacity: 0.6;
+}
+
+.underside__scanlines {
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, calc(0.18 + var(--dread) * 0.14)) 2px,
+    rgba(0, 0, 0, calc(0.18 + var(--dread) * 0.14)) 4px
+  );
+}
+
+.underside__tracking {
+  height: 14vh;
+  inset: auto 0 auto 0;
+  top: -14vh;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 0 1px, transparent 1px 3px),
+    linear-gradient(to bottom, transparent, rgba(220, 220, 220, 0.18) 45%, rgba(0, 0, 0, 0.35) 55%, transparent);
+  filter: blur(0.6px);
+  animation: tracking-roll 3.4s linear infinite;
+}
+
+@keyframes tracking-roll {
+  from { transform: translateY(0); }
+  to { transform: translateY(128vh); }
+}
+
+.underside__vignette {
+  background: radial-gradient(
+    ellipse at 50% 50%,
+    transparent calc(55% - var(--dread) * 25%),
+    rgba(0, 0, 0, calc(0.55 + var(--dread) * 0.4)) 100%
+  );
+}
+
+.underside__osd {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(1.3rem, 3.2vw, 2.1rem);
+  letter-spacing: 0.08em;
+  color: #ece8da;
+  text-shadow: 2px 0 rgba(255, 40, 40, 0.45), -2px 0 rgba(40, 200, 255, 0.45);
+}
+
+.underside__osd #osd-mode {
+  position: absolute;
+  top: 4vh;
+  left: 5vw;
+}
+
+.underside__osd #osd-time {
+  position: absolute;
+  bottom: 4vh;
+  right: 5vw;
+}
+
+/* Intrusions: the thing that is watching speaks the right way up. */
+.underside__intrusion {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 6vw;
+  background: rgba(0, 0, 0, 0.72);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s steps(3);
+}
+
+.underside__intrusion.is-on {
+  opacity: 1;
+  animation: intrusion-in 0.5s steps(4) both;
+}
+
+.underside__intrusion p {
+  margin: 0;
+  max-width: 16ch;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(2.4rem, 8vw, 6rem);
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: #f1eee4;
+  text-shadow: 3px 0 rgba(255, 40, 40, 0.5), -3px 0 rgba(40, 200, 255, 0.5);
+}
+
+@keyframes intrusion-in {
+  0% { transform: translateX(-8px) scaleY(1.4); filter: blur(2px); }
+  50% { transform: translateX(6px); }
+  100% { transform: none; filter: none; }
+}
+
+.underside__scare {
+  z-index: 5;
+  background: #000;
+}
+
+.underside__scare[hidden] {
+  display: none;
+}
+
+/* Final scare on the "safe" page: show only the face. */
+.underside.is-final {
+  background: transparent;
+}
+
+.underside.is-final > :not(.underside__scare) {
+  display: none;
+}
+
+/* Hold to escape */
+.underside__escape {
+  position: fixed;
+  left: 50%;
+  bottom: 12vh;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+.underside__escape[hidden] {
+  display: none;
+}
+
+.underside__escape-button {
+  position: relative;
+  overflow: hidden;
+  min-height: 56px;
+  padding: 0.9rem 2.2rem;
+  border: 2px solid rgba(240, 232, 214, 0.85);
+  background: rgba(0, 0, 0, 0.55);
+  color: #f2ecdf;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(1.4rem, 3.6vw, 2rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.underside__escape-button span:last-child {
+  position: relative;
+}
+
+.underside__escape-meter {
+  --hold: 0;
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 236, 200, 0.85);
+  transform: scaleX(var(--hold));
+  transform-origin: left center;
+  mix-blend-mode: difference;
+}
+
+.underside__escape-button:focus-visible,
+.underside__leave:focus-visible {
+  outline: 3px solid #f2ecdf;
+  outline-offset: 4px;
+}
+
+.underside__leave {
+  position: fixed;
+  top: 3.5vh;
+  right: 4vw;
+  z-index: 6;
+  padding: 0.6rem 0.8rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: 1.25rem;
+  letter-spacing: 0.12em;
+  color: rgba(236, 230, 214, 0.45);
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.underside__leave:hover {
+  color: rgba(236, 230, 214, 0.9);
+}
+
+/* ---------- Outside again ---------- */
+.outside {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.2rem;
+  padding: 8vw;
+  text-align: center;
+  background: radial-gradient(circle at 50% 40%, #f4ecdc, #d9ccb4);
+  color: #241a1f;
+}
+
+.outside h2 {
+  margin: 0;
+  font-family: "Playfair Display", Georgia, serif;
+  font-size: clamp(2.6rem, 8vw, 5.5rem);
+  outline: none;
+}
+
+.outside p {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.outside.is-haunted {
+  filter: invert(1) contrast(1.3);
+}
+
+/* The thing that followed you out: a second cursor, always a little behind. */
+.ghost-cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 14px;
+  height: 22px;
+  pointer-events: none;
+  opacity: 0.35;
+  background: #000;
+  clip-path: polygon(0 0, 0 78%, 26% 60%, 44% 100%, 58% 94%, 40% 56%, 74% 56%);
+  filter: blur(0.3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .underside__tracking { animation: none; display: none; }
+  .underside__intrusion.is-on { animation: none; }
+  body.is-descending .escape-arrival__content { animation: descent-fade 1.2s ease forwards; }
+}
+
+@keyframes descent-fade {
+  to { opacity: 0; }
+}
+
+/* ---------- Smile Tapes (played upright on the "TV") ---------- */
+.u-tapes {
+  height: 620vh;
+  background: #020202;
+}
+
+.u-tapes__glow {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  background: radial-gradient(ellipse 45% 35% at 50% 50%, rgba(90, 110, 160, 0.12), transparent 70%);
+}
+
+.underside__tapes {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  pointer-events: none;
+  filter: blur(0.4px) saturate(1.1);
+  /* A slightly curved CRT glass. */
+  border-radius: 2.5vmin;
+}
+
+/* ---------- Old errors ---------- */
+.u-errors {
+  height: 340vh;
+  background: linear-gradient(#030608, #071014 50%, #030608);
+}
+
+.underside__errors {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.retro-dialog {
+  position: absolute;
+  width: min(360px, 86vw);
+  pointer-events: auto;
+  background: #c3c3c3;
+  color: #000;
+  font: 14px/1.35 Tahoma, Verdana, "Segoe UI", sans-serif;
+  border: 2px solid;
+  border-color: #fff #404040 #404040 #fff;
+  box-shadow: 1px 1px 0 #000, 6px 8px 0 rgba(0, 0, 0, 0.35);
+  animation: dialog-pop 0.12s steps(2) both;
+}
+
+.retro-dialog--trail {
+  pointer-events: none;
+  animation: none;
+}
+
+@keyframes dialog-pop {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.retro-dialog__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px 3px 8px;
+  background: linear-gradient(90deg, #0b1f6b, #2a6fb5);
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.retro-dialog__x,
+.retro-dialog__ok {
+  min-width: 26px;
+  min-height: 26px;
+  background: #c3c3c3;
+  color: #000;
+  border: 2px solid;
+  border-color: #fff #404040 #404040 #fff;
+  font: inherit;
+  cursor: pointer;
+}
+
+.retro-dialog__x { line-height: 1; padding: 0 4px; }
+
+.retro-dialog__body {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 18px 16px 10px;
+}
+
+.retro-dialog__body p { margin: 0; }
+
+.retro-dialog__icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #b0201a;
+  color: #fff;
+  font-weight: 700;
+}
+
+.retro-dialog__actions {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 14px;
+}
+
+.retro-dialog__ok { min-width: 88px; min-height: 30px; }
+
+.retro-dialog__ok:focus-visible,
+.retro-dialog__x:focus-visible {
+  outline: 1px dotted #000;
+  outline-offset: -5px;
+}
+
+.fatal-screen {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 8vw;
+  background: #050505;
+  color: #e9e4d2;
+  pointer-events: auto;
+}
+
+.fatal-screen pre {
+  margin: 0;
+  font-family: "VT323", ui-monospace, monospace;
+  font-size: clamp(1.3rem, 3.4vw, 2.4rem);
+  line-height: 1.25;
+  white-space: pre-wrap;
+}
+
+.fatal-screen__cursor {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* 3 AM camcorder date stamp */
+.underside__osd #osd-date {
+  position: absolute;
+  bottom: 4vh;
+  left: 5vw;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fatal-screen__cursor { animation: none; }
+  .retro-dialog { animation: none; }
+}
