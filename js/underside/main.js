@@ -183,13 +183,16 @@ export function createUnderside({ gentle = false } = {}) {
     sizeCanvas(crackCanvas, 0.75);
     sizeCanvas(scratchCanvas, 0.75);
     sizeCanvas(scareCanvas, 0.6);
-    const res = UNDERSIDE.crtResolution;
+    const res = UNDERSIDE.crtResolution * quality;
     crtRoom?.resize(Math.round(vw * res), Math.round(vh * res));
     hall?.resize(Math.round(vw * res), Math.round(vh * res));
     if (running) window.scrollTo(0, maxScroll() - smoothY);
   }
 
-  function sizeCanvas(canvas, scale) {
+  // Adaptive quality: if frames run slow, every canvas renders smaller (see update()).
+  let quality = 1;
+  function sizeCanvas(canvas, baseScale) {
+    const scale = baseScale * quality;
     // clientWidth/Height ignore the 180° rotation and the track's translate.
     const width = Math.max(2, Math.round((canvas.clientWidth || vw) * scale));
     const height = Math.max(2, Math.round((canvas.clientHeight || vh) * scale));
@@ -437,6 +440,52 @@ export function createUnderside({ gentle = false } = {}) {
     root.classList.remove('is-scaring');
   }
 
+  // ---------- low-poly 3D gore set-pieces (massacre.js) ----------
+  let massacre = null;
+  const massacreCanvas = $('#massacre-canvas');
+  const goreSounds = {
+    slice: () => audio?.slice(),
+    squirt: () => audio?.splat(0.22),
+    sever: () => {
+      audio?.snap();
+      audio?.splat(0.5);
+    },
+    chop: () => {
+      audio?.slam(0.8);
+      audio?.snap();
+      audio?.splat(0.45);
+    },
+    stab: () => {
+      audio?.slice();
+      audio?.splat(0.4);
+    },
+    tear: () => {
+      audio?.splat(0.5);
+      audio?.skitter(0.3);
+    },
+    squelch: () => audio?.splat(0.18),
+    bugs: () => audio?.skitter(1.4),
+    turn: () => {
+      audio?.screech(0.6, 0.18);
+      audio?.braam(1.6, 0.3);
+    }
+  };
+  async function gore(name) {
+    if (gentle) return;
+    try {
+      if (!massacre) {
+        const { createMassacre } = await import('./massacre.js');
+        massacre = createMassacre(massacreCanvas, { quality });
+      }
+      massacre.resize(Math.round(vw * UNDERSIDE.crtResolution * quality), Math.round(vh * UNDERSIDE.crtResolution * quality));
+      massacreCanvas.hidden = false;
+      await massacre.play(name, { onHit: (kind) => goreSounds[kind]?.() });
+    } catch (error) {
+      console.warn('Gore scene unavailable.', error);
+    }
+    massacreCanvas.hidden = true;
+  }
+
   // ---------- jumpscares ----------
   const scareCtx = scareCanvas.getContext('2d');
   function animate(ms, draw) {
@@ -664,6 +713,7 @@ export function createUnderside({ gentle = false } = {}) {
 
   // 4. Rooms: three doors. The radio says left. The radio is not who it says it is.
   const CORRECT_DOOR = 2;
+  let wrongDoors = 0;
   $('#gate-doors').addEventListener('click', (event) => {
     const button = event.target.closest('.door-button');
     if (!button) return;
@@ -677,7 +727,8 @@ export function createUnderside({ gentle = false } = {}) {
     void button.offsetWidth;
     button.classList.add('is-wrong');
     button.disabled = true;
-    hammer().then(() => card(COPY.wrongDoor, { ms: 1400 }));
+    wrongDoors += 1;
+    (wrongDoors === 1 ? hammer() : gore('hand')).then(() => card(COPY.wrongDoor, { ms: 1400 }));
   });
 
   // 5. Leave: a dialog that won't let you go. The × runs from your cursor until it gets tired.
@@ -697,6 +748,9 @@ export function createUnderside({ gentle = false } = {}) {
     audio?.staticBurst(0.6, 0.4);
     closeGate();
     await handsOnGlass();
+    lock();
+    await gore('facewall');
+    unlock();
     solve('leave');
   });
   $('#gate-leave').addEventListener('click', (event) => {
@@ -784,6 +838,7 @@ export function createUnderside({ gentle = false } = {}) {
       });
       await wait(900);
       await hammer();
+      await gore(rsvpTries === 1 ? 'bugface' : 'gut');
       lockedMs -= 30000; // the clock jumps 30 seconds toward 3:00 AM
       timerEl.classList.add('is-jump');
       setTimeout(() => timerEl.classList.remove('is-jump'), 1200);
@@ -885,6 +940,8 @@ export function createUnderside({ gentle = false } = {}) {
         });
       }
       shake = 0;
+      scareCtx.clearRect(0, 0, w, h);
+      await gore('throat');
       audio?.riser(0.9, 0.3);
       await animate(900, (t, now) => drawLongOne(scareCtx, w, h, { emerge: 1, slash: 1, detach: 1, offer: 1, t: now / 1000, tag }));
       await wait(90);
@@ -969,6 +1026,9 @@ export function createUnderside({ gentle = false } = {}) {
     });
     // 3. The party, after: in 3D, it stabs the cake until the cake bleeds. Then it sees you.
     await runStabScene();
+    await gore('stabline');
+    await gore('gut');
+    await gore('bugface');
     // 4. We see you. Hands on the glass.
     scareCtx.clearRect(0, 0, w, h);
     endText.textContent = COPY.iSeeYou;
@@ -1179,8 +1239,18 @@ export function createUnderside({ gentle = false } = {}) {
   let lastBeat = '';
   let lastStatic = 0;
 
+  let frameEma = 16;
+  let slowFrames = 0;
   function update(now) {
     if (!running) return;
+    // Watch the frame rate; if it stays slow, render everything smaller.
+    frameEma += ((now - lastTime) - frameEma) * 0.05;
+    slowFrames = frameEma > 28 ? slowFrames + 1 : 0;
+    if (slowFrames > 90 && quality > 0.45) {
+      quality = Math.max(0.45, quality - 0.15);
+      slowFrames = 0;
+      measure();
+    }
     const dt = Math.min(0.05, (now - lastTime) / 1000);
     lastTime = now;
 
@@ -1612,7 +1682,7 @@ export function createUnderside({ gentle = false } = {}) {
       track.querySelectorAll('img').forEach((img) => img.addEventListener('load', measure, { once: true }));
       // ?debug exposes a lock opener for automated walkthroughs.
       if (new URLSearchParams(location.search).has('debug')) {
-        window.__underside = { solve: (id) => solve(id), gates: () => gates.map((g) => ({ ...g })), state: () => ({ y: smoothY, openGateId, locked }) };
+        window.__underside = { gore: (name) => gore(name), solve: (id) => solve(id), gates: () => gates.map((g) => ({ ...g })), state: () => ({ y: smoothY, openGateId, locked }) };
       }
       requestAnimationFrame(update);
     }
