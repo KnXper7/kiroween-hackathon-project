@@ -184,6 +184,13 @@ const startDescent = (gentle) => {
   soundToggle?.setAttribute('hidden', '');
   document.body.classList.add('is-descending');
 
+  // v2, "The Last Guest", is the default other side. ?v1 keeps the original scroll descent.
+  if (!new URLSearchParams(location.search).has('v1')) {
+    setTimeout(() => {
+      location.href = `./v2/index.html${gentle || reducedMotion ? '?gentle' : ''}`;
+    }, 1200);
+    return;
+  }
   const underside = createUnderside({ gentle: gentle || reducedMotion });
   setTimeout(() => {
     arrivalScene.hidden = true;

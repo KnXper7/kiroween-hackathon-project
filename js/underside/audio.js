@@ -872,7 +872,36 @@ export function createUndersideAudio({ gentle = false } = {}) {
     });
   }
 
+  /** An old telephone ringing: two close tones, warbling, two seconds on. */
+  function ring(level = 0.22) {
+    const t = now();
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(level, t + 0.02);
+    env.gain.setValueAtTime(level, t + 1.6);
+    env.gain.linearRampToValueAtTime(0, t + 1.7);
+    const trem = ctx.createOscillator();
+    trem.frequency.value = 20;
+    const tremGain = ctx.createGain();
+    tremGain.gain.value = 0.5;
+    const am = ctx.createGain();
+    am.gain.value = 0.5;
+    trem.connect(tremGain).connect(am.gain);
+    [440, 480].forEach((f) => {
+      const o = ctx.createOscillator();
+      o.type = 'triangle';
+      o.frequency.value = f;
+      o.connect(am);
+      o.start(t);
+      o.stop(t + 1.75);
+    });
+    am.connect(env).connect(master);
+    trem.start(t);
+    trem.stop(t + 1.75);
+  }
+
   return {
+    ring,
     bell,
     scrape,
     glassThump,

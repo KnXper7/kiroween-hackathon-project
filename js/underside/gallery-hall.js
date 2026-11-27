@@ -6,6 +6,8 @@
 import * as THREE from '../../vendor/three/three.module.js';
 import { drawWallpaper, drawWood, paint } from './crt-room.js';
 import { drawGrinner } from './creatures.js';
+import { createPost } from './post.js';
+import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
 
 const SPACING = 2.6;
 const HALF_WIDTH = 1.3;
@@ -148,6 +150,34 @@ export function createGalleryHall(canvas, images, { gentle = false } = {}) {
   scene.add(figure);
   let figureDistance = 13;
 
+  // The thing at the end, once it loads: a real rigged man with a real walk (Cesium Man, Khronos glTF
+  // sample, CC BY 4.0), made faceless and pale, stretched too tall, walking far too slowly.
+  let walker = null;
+  let mixer = null;
+  new GLTFLoader().load('./assets/underside/models/walker.glb', (gltf) => {
+    walker = gltf.scene;
+    const pale = track(new THREE.MeshStandardMaterial({ color: 0xc9c2b6, roughness: 0.75 }));
+    walker.traverse((child) => {
+      if (child.isMesh) {
+        child.material = pale;
+        child.castShadow = true;
+        child.frustumCulled = false;
+      }
+    });
+    const box = new THREE.Box3().setFromObject(walker);
+    const height = box.getSize(new THREE.Vector3()).y || 1;
+    const k = 2.15 / height;
+    walker.scale.set(k * 0.85, k * 1.2, k * 0.85);
+    scene.add(walker);
+    mixer = new THREE.AnimationMixer(walker);
+    if (gltf.animations[0]) {
+      const action = mixer.clipAction(gltf.animations[0]);
+      action.timeScale = 0.5;
+      action.play();
+    }
+    figure.visible = false;
+  });
+
   // ---------- light ----------
   const ambient = new THREE.AmbientLight(0x2a1010, 0.6);
   scene.add(ambient);
@@ -160,12 +190,15 @@ export function createGalleryHall(canvas, images, { gentle = false } = {}) {
   scene.add(flashlight, flashlight.target);
 
   const raycaster = new THREE.Raycaster();
+  const walkerFacing = 0; // adjust if the model's forward axis differs
+  const post = createPost(renderer, scene, camera, { bloom: 0.9, grain: 0.3, darkness: 0.85 });
   let flickerUntil = 0;
   let nextFlicker = 0;
 
   return {
     resize(width, height) {
       renderer.setSize(width, height, false);
+      post.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     },
@@ -192,6 +225,7 @@ export function createGalleryHall(canvas, images, { gentle = false } = {}) {
         flickerUntil = now + 140 + Math.random() * 160;
         // While it was dark, it moved.
         figureDistance = Math.max(4.5, figureDistance - 2.2);
+        post.glitch(160);
       }
       const dark = now < flickerUntil;
       flashlight.intensity = dark ? 0 : 38 * (0.92 + Math.random() * 0.08);
@@ -203,15 +237,23 @@ export function createGalleryHall(canvas, images, { gentle = false } = {}) {
 
       // The figure keeps its distance, except when it doesn't. It leaves before you reach the end.
       const end = -length + 4;
-      figure.visible = z - figureDistance > end;
-      figure.position.set(0.25, 1.3, Math.max(end, z - figureDistance));
-      figure.lookAt(camera.position.x, 1.3, camera.position.z);
+      const figureZ = Math.max(end, z - figureDistance);
+      if (walker) {
+        walker.visible = z - figureDistance > end;
+        walker.position.set(0.2, 0, figureZ);
+        walker.rotation.y = Math.atan2(camera.position.x - 0.2, camera.position.z - figureZ) + walkerFacing;
+        mixer.update(1 / 60);
+      } else {
+        figure.visible = z - figureDistance > end;
+        figure.position.set(0.25, 1.3, figureZ);
+        figure.lookAt(camera.position.x, 1.3, camera.position.z);
+      }
 
       portraits.forEach((p, i) => {
         if (!p.changed && z < p.z - 1.2) change(p, i);
       });
 
-      renderer.render(scene, camera);
+      post.render(1 / 60);
     },
 
     /** Which portrait is under a point (normalised device coords, -1…1). Returns its index or -1. */
@@ -237,6 +279,7 @@ export function createGalleryHall(canvas, images, { gentle = false } = {}) {
     },
 
     dispose() {
+      post.dispose();
       disposables.forEach((thing) => thing.dispose?.());
       scene.traverse((child) => child.geometry?.dispose?.());
       renderer.dispose();

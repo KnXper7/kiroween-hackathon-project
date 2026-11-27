@@ -72,6 +72,9 @@ export const underside = Object.freeze({
   notYourName: "THAT ISN'T YOUR NAME.",
   minusTime: '−30 SECONDS',
   lookAtHer: 'LOOK AT HER.',
+  tooLong: "YOU'RE TAKING TOO LONG.",
+  kidding: 'JUST KIDDING. GO.',
+  notYet: 'NOT YET.',
   iSeeYou: 'WE SEE YOU.',
   // A search party on a radio scanner, during the rooms. {NAME} becomes the guest's name.
   radio: Object.freeze([

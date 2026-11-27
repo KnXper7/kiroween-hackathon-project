@@ -110,7 +110,7 @@ export function drawNoSignal(ctx, w, h, { now = 0, t = 0 } = {}) {
   ctx.restore();
   ctx.save();
   ctx.globalAlpha = presence;
-  drawGrinner(ctx, w, h, { t: now / 1000, scale: 0.62, cy: h * 0.42, dark: false, grin: 1, blood: 0.8, stare: 0.6 });
+  drawGrinner(ctx, w, h, { t: now / 1000, scale: 0.62, cy: h * 0.42, dark: false, grin: 1.1, open: 0.35, blood: 0.8, stare: 0.6 });
   ctx.restore();
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(0, h * 0.72, w, h * 0.12);

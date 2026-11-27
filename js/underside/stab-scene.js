@@ -6,6 +6,7 @@
 import * as THREE from '../../vendor/three/three.module.js';
 import { drawGrinDecal, drawGrinner } from './creatures.js';
 import { GLTFLoader } from '../../vendor/three/addons/loaders/GLTFLoader.js';
+import { createPost } from './post.js';
 
 export const STAB_SCENE_SECONDS = 7.4;
 const STABS = [1.6, 2.5, 3.15, 3.65, 4.05, 4.4]; // seconds; each one faster than the last
@@ -226,11 +227,13 @@ export function createStabScene(canvas) {
   scene.add(rim);
 
   const stabbed = new Set();
+  const post = createPost(renderer, scene, camera, { bloom: 0.8, grain: 0.35 });
 
   return {
     duration: STAB_SCENE_SECONDS,
     resize(width, height) {
       renderer.setSize(width, height, false);
+      post.setSize(width, height);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
     },
@@ -259,6 +262,7 @@ export function createStabScene(canvas) {
             spray(new THREE.Vector3(0.15 + (Math.random() - 0.5) * 0.1, 1.15, 0.05), 26 + i * 6);
             addStain(0.15 + (Math.random() - 0.5) * 0.25, 1.161, 0.05 + (Math.random() - 0.5) * 0.15, 0.18 + i * 0.04, true);
             addStain((Math.random() - 0.5) * 1.6, 0.845, (Math.random() - 0.5) * 0.8, 0.3 + i * 0.12, false);
+            post.glitch(260);
             onStab?.(i);
           }
           break;
@@ -285,7 +289,7 @@ export function createStabScene(canvas) {
       // Face: painted fresh each frame so it twitches (only while the painted head is in use)
       if (!realHead) faceCtx.clearRect(0, 0, 512, 512);
       if (!realHead) {
-        drawGrinner(faceCtx, 512, 512, { t, scale: 1.5, cy: 280, dark: false, grin: 1.2, blood: 0.4 + stabbed.size * 0.1, stare: 1 });
+        drawGrinner(faceCtx, 512, 512, { t, scale: 1.5, cy: 280, dark: false, grin: 1.2, open: 0.3 + stabbed.size * 0.1, blood: 0.4 + stabbed.size * 0.1, stare: 1 });
         faceTex.needsUpdate = true;
       }
       // Twitch: the head jerks on a coarse clock
@@ -308,10 +312,11 @@ export function createStabScene(canvas) {
         s.m.scale.setScalar(s.m.scale.x + (s.target - s.m.scale.x) * 0.04);
       });
 
-      renderer.render(scene, camera);
+      post.render(1 / 60);
     },
 
     dispose() {
+      post.dispose();
       disposables.forEach((x) => x.dispose?.());
       renderer.dispose();
     }

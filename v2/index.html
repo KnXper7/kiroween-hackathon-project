@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <title>Nocturne Night · The Last Guest</title>
+    <link rel="icon" type="image/png" href="../images/logo.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;800&family=VT323&family=Caveat:wght@600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="v2.css">
+    <script type="importmap">{ "imports": { "three": "../vendor/three/three.module.js" } }</script>
+  </head>
+  <body>
+    <canvas id="view" aria-label="A dark hallway in a house"></canvas>
+    <canvas id="overlay" aria-hidden="true"></canvas>
+
+    <section class="gate" id="gate" aria-labelledby="gate-title">
+      <h1 id="gate-title">The party is still going.</h1>
+      <p class="gate__line">You arrived late. Nobody is here.</p>
+      <p class="gate__warn">Headphones. Lights off. Scroll slowly.<span>Flashing images · loud sounds · gore · jumpscares</span></p>
+      <div class="gate__actions">
+        <button class="gate__go" id="enter" type="button">Enter</button>
+        <button class="gate__gentle" id="enter-gentle" type="button">Gentle</button>
+      </div>
+    </section>
+
+    <div class="hud" id="hud" hidden>
+      <div class="hud__timer" role="timer" aria-label="Time left until the party ends at 3:00 AM">
+        <span id="timer">10:00</span>
+        <small>UNTIL THE PARTY ENDS · 3:00 AM</small>
+      </div>
+      <div class="hud__objective" id="objective-box" aria-live="polite">
+        <small>OBJECTIVE</small>
+        <span id="objective">Walk down the hall.</span>
+      </div>
+      <div class="hud__lap"><span id="lap"></span> <span class="hud__lives" id="lives" aria-label="Lives">♥♥♥</span></div>
+      <p class="hud__controls">SCROLL ↑ / W walk · MOUSE look · CLICK use · S look back</p>
+      <div class="hud__alarm" id="alarm" hidden><span id="alarm-text"></span><i id="alarm-bar"></i></div>
+      <p class="hud__hint" id="hint">Scroll up to walk. Move to look.</p>
+      <div class="hud__label" id="label" hidden></div>
+      <div class="hud__card" id="card" hidden><p id="card-text"></p></div>
+      <div class="hud__fade" id="fade"></div>
+      <a class="hud__leave" href="../index.html">Leave</a>
+    </div>
+    <canvas id="gore" class="gore" hidden aria-hidden="true"></canvas>
+
+    <section class="keyhole" id="keyhole" hidden aria-label="Looking through the keyhole"><canvas id="keyhole-canvas"></canvas></section>
+
+    <section class="panel" id="nursery-panel" hidden aria-label="The nursery">
+      <canvas id="nursery-canvas"></canvas>
+      <div class="panel__controls">
+        <p class="panel__prompt" id="nursery-prompt">The music box. Wind it.</p>
+        <button class="crank" id="wind" type="button"><i id="wind-meter"></i><span id="wind-label">Hold to wind</span></button>
+      </div>
+    </section>
+
+    <section class="panel" id="devil-panel" hidden aria-label="The host">
+      <canvas id="devil-canvas"></canvas>
+      <form class="panel__controls" id="rsvp-form" autocomplete="off">
+        <label class="panel__prompt" for="rsvp">To leave, cancel your RSVP. <b>Type the name you signed up with.</b></label>
+        <div class="rsvp"><input id="rsvp" maxlength="40" spellcheck="false"><button type="submit">Cancel RSVP</button></div>
+      </form>
+    </section>
+
+    <section class="death" id="death" hidden role="alertdialog" aria-labelledby="death-title">
+      <h2 id="death-title">YOU DIED</h2>
+      <p id="death-text">The party goes on without you.</p>
+      <button id="retry" type="button">Try again</button>
+    </section>
+
+    <p class="sr-only" id="live" aria-live="polite"></p>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

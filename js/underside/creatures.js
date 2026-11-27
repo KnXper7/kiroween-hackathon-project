@@ -50,7 +50,7 @@ export function tear(ctx, w, h, bands = 4, maxShift = 40) {
 //   stare 0–1    how twitchy it is (pupil darts, frame-skip head jerks)
 // ---------------------------------------------------------------------------------------------
 export function drawGrinner(ctx, w, h, {
-  t = 0, scale = 1, alpha = 1, cx = w / 2, cy = h * 0.52, dark = true, grin = 0.7, blood = 0, stare = 0, sad = 0
+  t = 0, scale = 1, alpha = 1, cx = w / 2, cy = h * 0.52, dark = true, grin = 0.7, blood = 0, stare = 0, sad = 0, open = 0.15
 } = {}) {
   ctx.save();
   ctx.globalAlpha = alpha;
@@ -63,7 +63,8 @@ export function drawGrinner(ctx, w, h, {
   const tick = Math.floor(t * 14); // twitches happen on a coarse clock, like dropped frames
   const jerk = stare * (hash(tick) > 0.8 ? (hash(tick + 7) - 0.5) * r * 0.12 : 0);
   ctx.translate(cx + jerk, cy + jerk * 0.4);
-  ctx.rotate(Math.sin(t * 2.1) * 0.03 - 0.06 + stare * (hash(tick + 3) > 0.85 ? 0.12 : 0));
+  // Never upright: a permanent lean, plus twitches
+  ctx.rotate(Math.sin(t * 2.1) * 0.03 - 0.14 + stare * (hash(tick + 3) > 0.85 ? 0.16 : 0));
   ctx.scale(1 + stare * Math.sin(t * 31) * 0.012, 1);
 
   // Head, lit from below; the edges dissolve into the dark.
@@ -123,6 +124,13 @@ export function drawGrinner(ctx, w, h, {
     ctx.ellipse(eye.x, eye.y, eye.rx, eye.ry, i ? 0.15 : -0.1, 0, TAU);
     ctx.fill();
     ctx.restore();
+    // The right lid droops, half over the eye
+    if (i === 1) {
+      ctx.fillStyle = '#a39b8c';
+      ctx.beginPath();
+      ctx.ellipse(eye.x, eye.y - eye.ry * 0.35, eye.rx * 1.08, eye.ry * 0.62, 0.15, Math.PI, Math.PI * 2);
+      ctx.fill();
+    }
     const dart = stare * r * 0.06;
     ctx.fillStyle = '#f4f1ea';
     ctx.beginPath();
@@ -150,10 +158,19 @@ export function drawGrinner(ctx, w, h, {
     ctx.fill();
   });
 
-  // The smile. As `grin` grows, the corners run past the cheeks and climb toward the temples.
-  // With `sad`, the whole mouth turns over into a frown (same teeth, same width).
-  const mw = r * (0.55 + grin * 0.62);
+  // The smile. It doesn't stretch sideways: the corners climb, up the cheeks, past the eyes,
+  // and at full stretch onto the forehead. Crooked on purpose: the right side climbs higher.
+  // `open` drops the jaw, from slightly parted to unhinged far below the chin.
   const top = ry * 0.22;
+  const mw = r * (0.6 + grin * 0.16);
+  const lift = ry * (0.05 + grin * 0.58);
+  const left = { x: -mw * 0.94, y: top - lift * 0.86 };
+  const right = { x: mw * 1.06, y: top - lift * 1.14 };
+  const upperCtl = { x: r * 0.07, y: top + ry * (0.1 + grin * 0.04) };
+  const drop = ry * (0.34 + grin * 0.1 + open * 1.15);
+  const lowerCtl = { x: -r * 0.1, y: top + drop };
+  const midUpper = (u) => quadY(left.y, upperCtl.y, right.y, u);
+  const midLower = (u) => quadY(left.y, lowerCtl.y, right.y, u);
   ctx.save();
   if (sad > 0) {
     const pivot = top + ry * 0.15;
@@ -161,36 +178,49 @@ export function drawGrinner(ctx, w, h, {
     ctx.scale(1, 1 - 2 * Math.min(1, sad));
     ctx.translate(0, -pivot);
   }
-  const lift = ry * (0.1 + grin * 0.3);
-  const left = { x: -mw, y: top - lift };
-  const right = { x: mw * 0.97, y: top - lift * 1.1 };
-  const dip = ry * (0.16 + grin * 0.1);
-  const drop = ry * (0.4 + grin * 0.25);
+  // A stretched band of skin around the dropped jaw, so it reads as a jaw, not a hole
+  if (open > 0.25) {
+    ctx.strokeStyle = '#a49c8e';
+    ctx.lineWidth = r * (0.08 + open * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(left.x, left.y);
+    ctx.quadraticCurveTo(lowerCtl.x, lowerCtl.y + r * 0.06, right.x, right.y);
+    ctx.stroke();
+  }
   ctx.beginPath();
   ctx.moveTo(left.x, left.y);
-  ctx.quadraticCurveTo(0, top + dip, right.x, right.y);
-  ctx.quadraticCurveTo(0, top + drop, left.x, left.y);
+  ctx.quadraticCurveTo(upperCtl.x, upperCtl.y, right.x, right.y);
+  ctx.quadraticCurveTo(lowerCtl.x, lowerCtl.y, left.x, left.y);
   ctx.closePath();
-  ctx.fillStyle = '#120505';
+  // Inside: a throat that goes back into nothing
+  const throat = ctx.createRadialGradient(0, (upperCtl.y + lowerCtl.y) / 2, 0, 0, (upperCtl.y + lowerCtl.y) / 2, Math.max(r * 0.2, drop * 0.6));
+  throat.addColorStop(0, '#000');
+  throat.addColorStop(0.7, '#0e0303');
+  throat.addColorStop(1, '#2a0708');
+  ctx.fillStyle = throat;
   ctx.fill();
   ctx.save();
   ctx.clip();
+  // Gums along the top and bottom
   ctx.fillStyle = '#3b1012';
   ctx.beginPath();
   ctx.moveTo(left.x, left.y);
-  ctx.quadraticCurveTo(0, top + dip, right.x, right.y);
+  ctx.quadraticCurveTo(upperCtl.x, upperCtl.y, right.x, right.y);
   ctx.lineTo(right.x, right.y + ry * 0.06);
-  ctx.quadraticCurveTo(0, top + dip + ry * 0.08, left.x, left.y + ry * 0.06);
+  ctx.quadraticCurveTo(upperCtl.x, upperCtl.y + ry * 0.08, left.x, left.y + ry * 0.06);
   ctx.fill();
-  const count = Math.round(22 + grin * 16);
+  // Teeth: many, thin, uneven. Their length is capped, so a wide jaw shows throat, not taffy teeth.
+  const count = Math.round(24 + grin * 14);
   for (let i = 0; i < count; i += 1) {
     const u = i / (count - 1);
     const x = left.x + (right.x - left.x) * u;
-    const yTop = quadY(left.y, top + dip, right.y, u) + ry * 0.02;
-    const yBottom = quadY(left.y, top + drop, right.y, u) - ry * 0.01;
-    const tw = ((right.x - left.x) / count) * 0.85;
-    const lenTop = (yBottom - yTop) * (0.4 + 0.14 * Math.sin(i * 12.9898));
-    const lenBottom = (yBottom - yTop) * (0.32 + 0.12 * Math.sin(i * 78.233));
+    const yTop = midUpper(u) + ry * 0.02;
+    const yBottom = midLower(u) - ry * 0.01;
+    const gap = Math.max(0, yBottom - yTop);
+    const tw = ((right.x - left.x) / count) * (0.7 + hash(i * 3.3) * 0.35);
+    const lenTop = Math.min(gap * 0.42, ry * (0.1 + hash(i) * 0.08)) * (hash(i * 9.1) > 0.92 ? 0.3 : 1); // a few broken
+    const lenBottom = Math.min(gap * 0.36, ry * (0.08 + hash(i * 2) * 0.07));
+    const lean = (hash(i * 5.5) - 0.5) * tw * 0.6;
     const shade = ctx.createLinearGradient(0, yTop, 0, yTop + lenTop);
     shade.addColorStop(0, blood > 0.3 && i % 3 === 0 ? '#7a3a30' : '#d8d0bc');
     shade.addColorStop(1, '#8f8775');
@@ -198,39 +228,53 @@ export function drawGrinner(ctx, w, h, {
     ctx.beginPath();
     ctx.moveTo(x - tw / 2, yTop);
     ctx.lineTo(x + tw / 2, yTop);
-    ctx.lineTo(x + tw * 0.1, yTop + lenTop);
+    ctx.lineTo(x + lean, yTop + lenTop);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#9d9583';
+    ctx.fillStyle = hash(i * 4.4) > 0.85 ? '#6a6250' : '#9d9583';
     ctx.beginPath();
     ctx.moveTo(x - tw / 2, yBottom);
     ctx.lineTo(x + tw / 2, yBottom);
-    ctx.lineTo(x - tw * 0.1, yBottom - lenBottom);
+    ctx.lineTo(x - lean, yBottom - lenBottom);
     ctx.closePath();
     ctx.fill();
   }
+  // Strings of spit across the gap when it opens
+  if (open > 0.3) {
+    ctx.strokeStyle = 'rgba(200,190,180,0.35)';
+    ctx.lineWidth = Math.max(1, r * 0.006);
+    for (let k = 0; k < 4; k += 1) {
+      const u = 0.25 + k * 0.17;
+      const x = left.x + (right.x - left.x) * u;
+      ctx.beginPath();
+      ctx.moveTo(x, midUpper(u) + ry * 0.12);
+      ctx.quadraticCurveTo(x + r * 0.02, (midUpper(u) + midLower(u)) / 2 + ry * 0.1, x + r * 0.03, midLower(u) - ry * 0.1);
+      ctx.stroke();
+    }
+  }
   ctx.restore();
-
   ctx.restore();
 
   // Blood spilling over the lower lip
   if (blood > 0 && sad < 0.5) {
-    for (let s = 0; s < 6; s += 1) {
-      const u = 0.18 + s * 0.13;
+    for (let k = 0; k < 6; k += 1) {
+      const u = 0.18 + k * 0.13;
       const x = left.x + (right.x - left.x) * u;
-      const y = quadY(left.y, top + drop, right.y, u) - ry * 0.02;
-      bloodStream(ctx, x, y, blood * ry * (0.2 + hash(s * 3) * 0.5), r * 0.03, t + s * 0.7);
+      const y = midLower(u) - ry * 0.02;
+      bloodStream(ctx, x, y, blood * ry * (0.2 + hash(k * 3) * 0.5), r * 0.03, t + k * 0.7);
     }
   }
 
-  // Creases from the corners of the smile up toward the eyes
-  ctx.strokeStyle = 'rgba(50,42,36,0.55)';
-  ctx.lineWidth = r * 0.018;
+  // Creases where the skin is pulled up: from each corner, fanning toward the temple
+  ctx.strokeStyle = 'rgba(50,42,36,0.6)';
+  ctx.lineWidth = r * 0.016;
   [[left, -1], [right, 1]].forEach(([corner, side]) => {
-    ctx.beginPath();
-    ctx.moveTo(corner.x, corner.y);
-    ctx.quadraticCurveTo(corner.x + side * r * 0.05, corner.y - ry * 0.25, side * r * 0.45, -ry * 0.06);
-    ctx.stroke();
+    for (let c = 0; c < 3; c += 1) {
+      ctx.beginPath();
+      ctx.moveTo(corner.x - side * r * 0.04 * c, corner.y + ry * 0.05 * c);
+      ctx.quadraticCurveTo(corner.x + side * r * 0.12, corner.y - ry * (0.08 + c * 0.04), side * r * (0.85 - c * 0.05), corner.y - ry * (0.16 + c * 0.08));
+      ctx.stroke();
+    }
   });
 
   // Skin grain
@@ -472,7 +516,7 @@ export function drawLongOne(ctx, w, h, { emerge = 0, slash = 0, detach = 0, offe
   }
 
   // Head
-  drawGrinner(ctx, w, h, { t, scale: 0.26, cx: H.x, cy: H.y, dark: false, grin: 0.9 + detach * 0.4, blood: 0.5 + detach * 0.5, stare: 1 });
+  drawGrinner(ctx, w, h, { t, scale: 0.26, cx: H.x, cy: H.y, dark: false, grin: 0.9 + detach * 0.4, open: 0.15 + detach * 0.7, blood: 0.5 + detach * 0.5, stare: 1 });
 
   // Forearm: hangs from the elbow, then comes loose and is held out toward the camera.
   const o = easeInOut(offer);
@@ -642,7 +686,7 @@ export function drawHammerFace(ctx, w, h, { t = 0, now = 0 } = {}) {
   const back = Math.max(0, (t - 0.62) / 0.38);
   const scale = 0.35 + easeIn(rush) * 0.85 - back * 0.25;
   // It keeps smiling. Always.
-  drawGrinner(ctx, w, h, { t: now / 1000, scale, grin: 1.1 + back * 0.2, blood: 0.5 + back * 0.5, stare: 1, cy: h * 0.55, dark: false });
+  drawGrinner(ctx, w, h, { t: now / 1000, scale, grin: 1.1 + back * 0.2, open: 0.3 + swing * 0.4, blood: 0.5 + back * 0.5, stare: 1, cy: h * 0.55, dark: false });
   // The mallet: raised over its head, then brought down at you
   ctx.save();
   ctx.translate(w * 0.5 + u * 0.42 * scale, h * 0.5 - u * 0.1 * scale);
@@ -1210,7 +1254,7 @@ export function drawHammerBeat(ctx, w, h, { k = 0, now = 0, blow = 1 } = {}) {
   ctx.fillRect(0, 0, w, h);
   const u = Math.min(w, h);
   const lunge = k > 0.6 && k < 0.85 ? 0.12 : 0;
-  drawGrinner(ctx, w, h, { t: now / 1000, scale: 1.15 + lunge, grin: 1.25, blood: Math.min(1, 0.6 + blow * 0.2), stare: 1, cy: h * 0.55, dark: false });
+  drawGrinner(ctx, w, h, { t: now / 1000, scale: 1.15 + lunge, grin: 1.25, open: 0.5 + lunge * 3, blood: Math.min(1, 0.6 + blow * 0.2), stare: 1, cy: h * 0.55, dark: false });
   // Spatter across the face, growing with every blow
   ctx.fillStyle = 'rgba(80,3,8,0.9)';
   for (let i = 0; i < blow * 14; i += 1) {

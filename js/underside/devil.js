@@ -52,12 +52,14 @@ export function drawDevil(ctx, w, h, { t = 0, presence = 1, speak = 0, rage = 0 
   ctx.closePath();
   ctx.fill();
 
-  // Horns: long, ridged, curling up and out past the top of the screen
+  // Horns: long, ridged, curling up and out. Not a matching pair: the right one was snapped off.
   [-1, 1].forEach((s) => {
     ctx.save();
-    ctx.translate(cx + s * scale * 0.13, headY - scale * 0.16);
+    ctx.translate(cx + s * scale * (s < 0 ? 0.14 : 0.11), headY - scale * (s < 0 ? 0.17 : 0.14));
+    ctx.rotate(s < 0 ? -0.08 : 0.22);
     const steps = 26;
-    for (let i = steps; i >= 0; i -= 1) {
+    const length = s < 0 ? 1 : 0.42;
+    for (let i = Math.round(steps * length); i >= 0; i -= 1) {
       const k = i / steps;
       const x = s * (k * scale * 0.42 + Math.sin(k * 2.6) * scale * 0.08);
       const y = -k * scale * 0.62 + k * k * scale * 0.18;
@@ -70,6 +72,20 @@ export function drawDevil(ctx, w, h, { t = 0, presence = 1, speak = 0, rage = 0 
       ctx.arc(x, y, r, 0, TAU);
       ctx.fill();
     }
+    if (s > 0) {
+      // the jagged break
+      const k = length;
+      const x = s * (k * scale * 0.42 + Math.sin(k * 2.6) * scale * 0.08);
+      const y = -k * scale * 0.62 + k * k * scale * 0.18;
+      ctx.fillStyle = '#6a5a4a';
+      ctx.beginPath();
+      ctx.moveTo(x - scale * 0.03, y);
+      ctx.lineTo(x - scale * 0.01, y - scale * 0.035);
+      ctx.lineTo(x + scale * 0.005, y - scale * 0.01);
+      ctx.lineTo(x + scale * 0.02, y - scale * 0.04);
+      ctx.lineTo(x + scale * 0.03, y);
+      ctx.fill();
+    }
     ctx.restore();
   });
 
@@ -80,25 +96,33 @@ export function drawDevil(ctx, w, h, { t = 0, presence = 1, speak = 0, rage = 0 
   head.addColorStop(1, '#050101');
   ctx.fillStyle = head;
   ctx.beginPath();
-  ctx.ellipse(cx, headY, scale * 0.16, scale * 0.23, 0, 0, TAU);
+  ctx.ellipse(cx, headY, scale * 0.16, scale * 0.23, 0.09, 0, TAU);
   ctx.fill();
+  // One cheek caved in
+  const cave = ctx.createRadialGradient(cx + scale * 0.08, headY + scale * 0.05, 0, cx + scale * 0.08, headY + scale * 0.05, scale * 0.07);
+  cave.addColorStop(0, 'rgba(0,0,0,0.8)');
+  cave.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = cave;
+  ctx.fillRect(cx, headY - scale * 0.05, scale * 0.2, scale * 0.2);
 
   // Eyes: molten, slit-pupilled, much too bright
   const blink = Math.sin(t * 0.7) > 0.992 ? 0.1 : 1;
   [-1, 1].forEach((s) => {
-    const ex = cx + s * scale * 0.065;
-    const ey = headY - scale * 0.04;
-    const glow = ctx.createRadialGradient(ex, ey, 0, ex, ey, scale * (0.08 + rage * 0.05));
+    // Mismatched: the left eye bigger and higher, the right one small and sunk
+    const big = s < 0 ? 1.3 : 0.75;
+    const ex = cx + s * scale * (s < 0 ? 0.07 : 0.06);
+    const ey = headY - scale * (s < 0 ? 0.055 : 0.02);
+    const glow = ctx.createRadialGradient(ex, ey, 0, ex, ey, scale * (0.08 + rage * 0.05) * big);
     glow.addColorStop(0, 'rgba(255,230,140,0.95)');
     glow.addColorStop(0.25, 'rgba(255,120,20,0.7)');
     glow.addColorStop(1, 'rgba(180,10,0,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(ex, ey, scale * (0.08 + rage * 0.05), 0, TAU);
+    ctx.arc(ex, ey, scale * (0.08 + rage * 0.05) * big, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#fff1b0';
     ctx.beginPath();
-    ctx.ellipse(ex, ey, scale * 0.032, scale * 0.014 * blink, s * -0.25, 0, TAU);
+    ctx.ellipse(ex, ey, scale * 0.032 * big, scale * 0.014 * blink * big, s * -0.25, 0, TAU);
     ctx.fill();
     ctx.fillStyle = '#120200';
     ctx.beginPath();
@@ -116,9 +140,10 @@ export function drawDevil(ctx, w, h, { t = 0, presence = 1, speak = 0, rage = 0 
   fire.addColorStop(1, '#5a0400');
   ctx.fillStyle = fire;
   ctx.beginPath();
-  ctx.moveTo(cx - mw, my - scale * 0.012);
-  ctx.quadraticCurveTo(cx, my + scale * 0.005, cx + mw, my - scale * 0.012);
-  ctx.quadraticCurveTo(cx, my + scale * (0.015 + open * 0.07), cx - mw, my - scale * 0.012);
+  // Lopsided: the right corner higher, the jaw hanging to one side
+  ctx.moveTo(cx - mw, my - scale * 0.004);
+  ctx.quadraticCurveTo(cx + scale * 0.01, my + scale * 0.005, cx + mw * 1.1, my - scale * 0.03);
+  ctx.quadraticCurveTo(cx - scale * 0.02, my + scale * (0.02 + open * 0.12), cx - mw, my - scale * 0.004);
   ctx.fill();
   ctx.fillStyle = '#0a0302';
   for (let i = 0; i < 14; i += 1) {

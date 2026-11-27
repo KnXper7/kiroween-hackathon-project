@@ -258,6 +258,7 @@ export function createUnderside({ gentle = false } = {}) {
   let heartPhase = 0;
   let lastDreadStep = -1;
   let lastHoldTick = 0;
+  let grabbed = false;
   let lastFearStep = -1;
   let heartBpm = 60;
   let lastHeartSync = 0;
@@ -486,6 +487,57 @@ export function createUnderside({ gentle = false } = {}) {
     massacreCanvas.hidden = true;
   }
 
+  // ---------- ambushes: short lunges where you expect relief, or are taking your time ----------
+  let lastAmbush = 0;
+  async function ambush(text) {
+    const now = performance.now();
+    const tooSoon = now - lastAmbush < 6000;
+    if (tooSoon || gentle || !flashes.tryFlash(now)) {
+      if (text) card(text, { ms: 1500 });
+      return;
+    }
+    lastAmbush = now;
+    scareCanvas.hidden = false;
+    root.classList.add('is-scaring');
+    audio?.restore();
+    audio?.screech(0.45, 0.2);
+    audio?.slam(0.6);
+    const { width: w, height: h } = scareCanvas;
+    const cx = w * (0.3 + Math.random() * 0.4);
+    await animate(440, (t, n) => {
+      drawGrinner(scareCtx, w, h, { t: n / 1000, scale: 0.45 + t * t * 1.3, cx, grin: 1.25, open: 0.35 + t * 0.65, blood: 0.6, stare: 1 });
+      tear(scareCtx, w, h, 5, w * 0.06);
+      shake = 1;
+    });
+    cracks.hit(cx / w, 0.45);
+    bleed(0.35, 0.7);
+    shake = 0;
+    scareCtx.clearRect(0, 0, w, h);
+    scareCanvas.hidden = true;
+    root.classList.remove('is-scaring');
+    if (text) card(text, { ms: 1600 });
+  }
+
+  // ---------- rewards: when something good happens, it comes to congratulate you ----------
+  // The long thing leans out of the corner and hands you its own severed arm, with a tag.
+  async function reward() {
+    if (gentle) return;
+    const { width: w, height: h } = scareCanvas;
+    const tag = name ? `WELL DONE, ${name}` : 'WELL DONE';
+    scareCanvas.hidden = false;
+    scareCanvas.classList.add('is-overlay');
+    audio?.skitter(0.4);
+    audio?.whisper(1.6, 0.14, 0.6);
+    await animate(320, (t, n) => drawLongOne(scareCtx, w, h, { emerge: t, slash: 1, detach: 1, t: n / 1000, tag }));
+    await animate(1300, (t, n) => drawLongOne(scareCtx, w, h, { emerge: 1, slash: 1, detach: 1, offer: t, t: n / 1000, tag }));
+    await animate(900, (t, n) => drawLongOne(scareCtx, w, h, { emerge: 1, slash: 1, detach: 1, offer: 1, t: n / 1000, tag }));
+    audio?.skitter(0.25);
+    await animate(260, (t, n) => drawLongOne(scareCtx, w, h, { emerge: 1 - t, slash: 1, detach: 1, offer: 1 - t, t: n / 1000, tag }));
+    scareCtx.clearRect(0, 0, w, h);
+    scareCanvas.classList.remove('is-overlay');
+    scareCanvas.hidden = true;
+  }
+
   // ---------- jumpscares ----------
   const scareCtx = scareCanvas.getContext('2d');
   function animate(ms, draw) {
@@ -503,7 +555,7 @@ export function createUnderside({ gentle = false } = {}) {
   const grinnerFrame = (t, now) => {
     const { width: w, height: h } = scareCanvas;
     const stepped = Math.floor(t * 9) / 9;
-    drawGrinner(scareCtx, w, h, { t: now / 1000, scale: 0.9 + t * t * 0.7, grin: 0.8 + stepped * 0.6, blood: 0.35 + t * 0.65, stare: 1 });
+    drawGrinner(scareCtx, w, h, { t: now / 1000, scale: 0.9 + t * t * 0.7, grin: 0.8 + stepped * 0.6, open: 0.2 + stepped * 0.8, blood: 0.35 + t * 0.65, stare: 1 });
     tear(scareCtx, w, h, 4 + Math.round(t * 6), w * 0.07);
     grain(scareCtx, w, h, 0.28);
   };
@@ -560,7 +612,13 @@ export function createUnderside({ gentle = false } = {}) {
     if (el) el.hidden = false;
     if (id === 'host') stages.hall.classList.add('is-picking');
     if (id === 'leave') audio?.errorChime();
-    if (id === 'doors') $('#radio').hidden = true;
+    if (id === 'doors') {
+      $('#radio').hidden = true;
+      clearTimeout(doorTimer);
+      doorTimer = setTimeout(() => {
+        if (openGateId === 'doors' && !gate('doors').solved) ambush(COPY.tooLong);
+      }, 5000);
+    }
     if (id === 'rsvp') setTimeout(() => $('#rsvp-name')?.focus({ preventScroll: true }), 400);
   }
   function closeGate() {
@@ -590,7 +648,12 @@ export function createUnderside({ gentle = false } = {}) {
       hall.wake(index);
       audio?.pianoCluster(0.35);
       audio?.braam(2.4, 0.25);
-      solve('host', COPY.hostFound);
+      closeGate();
+      lock(); // keep the lock's controls closed until the scare is over
+      ambush(COPY.hostFound).then(() => {
+        unlock();
+        solve('host');
+      });
     } else {
       hall.spoil(index);
       audio?.whisper(1.2, 0.14, x);
@@ -619,7 +682,12 @@ export function createUnderside({ gentle = false } = {}) {
     vcrDisplay.textContent = 'NO SIGNAL';
     audio?.clunk();
     audio?.staticBurst(0.8, 0.35);
-    solve('vcr');
+    closeGate();
+    lock();
+    setTimeout(() => ambush().then(() => {
+      unlock();
+      solve('vcr');
+    }), 700);
   });
 
   // 3. Nursery: wind the music box three times. Each time it runs down, the doll changes.
@@ -649,6 +717,14 @@ export function createUnderside({ gentle = false } = {}) {
     dollState.holding = false;
     windLabel.textContent = 'Listen…';
     windButton.disabled = true;
+    if (dollState.winds === 0) {
+      setTimeout(() => {
+        dollState.look = -1.6; // the head snaps round, too far
+        subliminal(null, 3);
+        audio?.screech(0.35, 0.14);
+        card(COPY.lookAtHer, { ms: 900, sound: false });
+      }, 2300);
+    }
     await audio?.lullaby(10);
     // The box runs down. The lamp goes. When it comes back, the doll is not the same.
     dollState.light = 0.05;
@@ -675,6 +751,9 @@ export function createUnderside({ gentle = false } = {}) {
     windButton.disabled = false;
     if (dollState.winds >= 3) {
       await headRoll();
+      lock();
+      await reward();
+      unlock();
       solve('music', COPY.didntLike);
     }
   }
@@ -713,14 +792,26 @@ export function createUnderside({ gentle = false } = {}) {
 
   // 4. Rooms: three doors. The radio says left. The radio is not who it says it is.
   const CORRECT_DOOR = 2;
+  let doorTimer = 0;
   let wrongDoors = 0;
   $('#gate-doors').addEventListener('click', (event) => {
     const button = event.target.closest('.door-button');
     if (!button) return;
     const door = Number(button.dataset.door);
+    clearTimeout(doorTimer);
     if (door === CORRECT_DOOR) {
+      // You picked right. It doesn't care. Then it congratulates you.
       audio?.creak(1.4, 0.2);
-      solve('doors');
+      closeGate();
+      lock();
+      ambush(COPY.wrongDoor).then(async () => {
+        await wait(1500);
+        card(COPY.kidding, { ms: 1300, sound: false });
+        await wait(1500);
+        await reward();
+        unlock();
+        solve('doors');
+      });
       return;
     }
     button.classList.remove('is-wrong');
@@ -735,6 +826,7 @@ export function createUnderside({ gentle = false } = {}) {
   const leaveDialog = $('#gate-leave .retro-dialog');
   const leaveX = $('#leave-x');
   let dodges = 0;
+  let stays = 0;
   leaveX.addEventListener('pointerenter', () => {
     if (dodges >= 6) return;
     dodges += 1;
@@ -759,7 +851,9 @@ export function createUnderside({ gentle = false } = {}) {
     void leaveDialog.offsetWidth;
     leaveDialog.classList.add('is-shaking');
     audio?.errorChime();
-    card(COPY.stay, { ms: 1000, sound: false });
+    stays += 1;
+    if (stays === 2) ambush(COPY.stay);
+    else card(COPY.stay, { ms: 1000, sound: false });
   });
 
   // You closed it. Something on the other side of the screen did not want you to.
@@ -1069,7 +1163,7 @@ export function createUnderside({ gentle = false } = {}) {
     await animate(2400, (t, now) => {
       scareCtx.fillStyle = '#000';
       scareCtx.fillRect(0, 0, w, h);
-      drawGrinner(scareCtx, w, h, { t: now / 1000, scale: 1, alpha: 0.5, grin: 1.3, blood: 1, stare: 1, dark: false });
+      drawGrinner(scareCtx, w, h, { t: now / 1000, scale: 1, alpha: 0.5, grin: 1.3, open: 0.9, blood: 1, stare: 1, dark: false });
       drawBloodFlood(scareCtx, w, h, { p: t, t: now / 1000 });
     });
     await wait(400);
@@ -1353,7 +1447,12 @@ export function createUnderside({ gentle = false } = {}) {
     }
     // Stopping is noticed too (not while you're working a lock)
     if (!locked && !openGateId && !exiting && now - lastInput > UNDERSIDE.idleMs && progress > 0.05 && progress < 0.9) {
-      if (cardOnce('stop', COPY.whyStop, { ms: 2400 })) audio?.breath(2);
+      if (cardOnce('stop', COPY.whyStop, { ms: 2000 })) {
+        audio?.breath(2);
+        setTimeout(() => {
+          if (performance.now() - lastInput > UNDERSIDE.idleMs + 1500) ambush();
+        }, 2600);
+      }
     }
     // Rare subliminal frames once things have started going wrong
     if (now > nextSubliminal && dread > 0.25 && !locked) {
@@ -1376,6 +1475,12 @@ export function createUnderside({ gentle = false } = {}) {
       const holdDt = Math.min(250, now - (lastHoldTick || now));
       lastHoldTick = now;
       escapeHold = holdProgress(escapeHold, holdDt, holding);
+      if (escapeHold > 0.85 && !grabbed) {
+        grabbed = true;
+        escapeHold = 0.45;
+        setHolding(false);
+        ambush(COPY.notYet);
+      }
       escapeMeter.style.setProperty('--hold', escapeHold.toFixed(3));
       shake = holding ? escapeHold * 0.5 : Math.max(0, shake - dt * 2);
       if (escapeHold > 0.45) cardOnce('dontLeave', COPY.dontLeave, { ms: 1600 });
@@ -1682,7 +1787,7 @@ export function createUnderside({ gentle = false } = {}) {
       track.querySelectorAll('img').forEach((img) => img.addEventListener('load', measure, { once: true }));
       // ?debug exposes a lock opener for automated walkthroughs.
       if (new URLSearchParams(location.search).has('debug')) {
-        window.__underside = { gore: (name) => gore(name), solve: (id) => solve(id), gates: () => gates.map((g) => ({ ...g })), state: () => ({ y: smoothY, openGateId, locked }) };
+        window.__underside = { ambush: (text) => ambush(text), reward: () => reward(), gore: (name) => gore(name), solve: (id) => solve(id), gates: () => gates.map((g) => ({ ...g })), state: () => ({ y: smoothY, openGateId, locked }) };
       }
       requestAnimationFrame(update);
     }

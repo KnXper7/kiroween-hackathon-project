@@ -13,6 +13,7 @@
 
 import * as THREE from '../../vendor/three/three.module.js';
 import { drawGrinDecal } from './creatures.js';
+import { createPost } from './post.js';
 
 export const SCENES = Object.freeze({ throat: 7.5, hand: 5.5, stabline: 6.8, gut: 6.5, bugface: 4.8, facewall: 4.4 });
 
@@ -36,8 +37,10 @@ export function createMassacre(canvas, { quality = 1 } = {}) {
   const grinTex = new THREE.CanvasTexture(grinCanvas);
   grinTex.colorSpace = THREE.SRGBColorSpace;
 
+  let size = [640, 360];
   return {
     resize(width, height) {
+      size = [width, height];
       renderer.setSize(width, height, false);
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -47,17 +50,24 @@ export function createMassacre(canvas, { quality = 1 } = {}) {
       if (!build) return Promise.resolve();
       const ctx = makeContext(grinTex, quality);
       const scene = build(ctx);
+      const post = createPost(renderer, ctx.scene, camera, { bloom: 0.5, grain: 0.38, scanlines: 0.12 });
+      post.setSize(size[0], size[1]);
+      const hit = (kind) => {
+        if (kind !== 'squelch' && kind !== 'squirt') post.glitch(kind === 'turn' ? 500 : 280);
+        onHit?.(kind);
+      };
       const duration = SCENES[name];
       const start = performance.now();
       return new Promise((resolve) => {
         const frame = (now) => {
           const t = (now - start) / 1000;
           ctx.t = t;
-          scene.update(t, camera, onHit);
+          scene.update(t, camera, hit);
           ctx.gore.update(1 / 60);
-          renderer.render(ctx.scene, camera);
+          post.render(1 / 60);
           if (t < duration) requestAnimationFrame(frame);
           else {
+            post.dispose();
             ctx.dispose();
             resolve();
           }
@@ -230,10 +240,11 @@ function makeKiller(ctx, { blade = 'knife' } = {}) {
   head.add(skull);
   const voids = mat(0x000000, { roughness: 1 });
   [-1, 1].forEach((s) => {
-    const eye = new THREE.Mesh(ctx.keep(new THREE.IcosahedronGeometry(0.045, 0)), voids);
-    eye.position.set(s * 0.065, 0.05, 0.14);
+    const eye = new THREE.Mesh(ctx.keep(new THREE.IcosahedronGeometry(s < 0 ? 0.055 : 0.035, 0)), voids);
+    eye.position.set(s * 0.065, s < 0 ? 0.07 : 0.03, 0.14);
     head.add(eye);
   });
+  head.rotation.z = 0.28; // always leaning
   const grin = new THREE.Mesh(ctx.keep(new THREE.PlaneGeometry(0.3, 0.15)), ctx.keep(new THREE.MeshBasicMaterial({ map: ctx.grinTex, transparent: true })));
   grin.position.set(0, -0.1, 0.16);
   head.add(grin);
@@ -656,7 +667,9 @@ const BUILDERS = {
     for (let r = 0; r < 4; r += 1) {
       for (let c = 0; c < 7; c += 1) {
         const holder = new THREE.Group();
-        holder.position.set((c - 3) * 0.55, 0.6 + r * 0.55, -1.2 + Math.random() * 0.1);
+        // No grid: every face a different size, height and lean
+        holder.position.set((c - 3) * 0.55 + (Math.random() - 0.5) * 0.25, 0.55 + r * 0.55 + (Math.random() - 0.5) * 0.25, -1.2 + Math.random() * 0.5);
+        holder.scale.setScalar(0.75 + Math.random() * 0.55);
         const skull = new THREE.Mesh(ctx.keep(new THREE.IcosahedronGeometry(0.2, 1)), ctx.mat(pick(SKIN, r + c)));
         skull.scale.set(1, 1.2, 1);
         const grin = new THREE.Mesh(ctx.keep(new THREE.PlaneGeometry(0.28, 0.14)), ctx.keep(new THREE.MeshBasicMaterial({ map: ctx.grinTex, transparent: true })));
@@ -670,7 +683,8 @@ const BUILDERS = {
         holder.add(skull, grin);
         holder.rotation.y = Math.PI * (0.55 + Math.random() * 0.3) * (Math.random() < 0.5 ? 1 : -1);
         ctx.scene.add(holder);
-        faces.push({ holder, from: holder.rotation.y });
+        const lean = (Math.random() - 0.5) * 0.9 + (Math.random() < 0.1 ? Math.PI : 0); // a few upside down
+        faces.push({ holder, from: holder.rotation.y, lean, delay: Math.random() * 0.25 });
       }
     }
     let turned = false;
@@ -679,16 +693,19 @@ const BUILDERS = {
         cam.position.set(0, 1.4, 2.4 - ease(t / 4) * 0.6);
         cam.lookAt(0, 1.4, -1.2);
         // They all turn at the same instant, and stare
-        const snap = t > 2 ? 1 : 0;
-        if (snap && !turned) {
+        if (t > 2 && !turned) {
           turned = true;
           onHit?.('turn');
         }
         faces.forEach((f) => {
-          f.holder.rotation.y = f.from * (1 - snap);
-          f.holder.rotation.z = snap ? Math.sin(t * 9 + f.from) * 0.03 : 0;
+          // Not quite together: each snaps a fraction late, and lands at its own angle
+          const snap = t > 2 + f.delay ? 1 : 0;
+          f.holder.rotation.y = f.from * (1 - snap) + snap * f.lean * 0.15;
+          f.holder.rotation.z = snap ? f.lean + Math.sin(t * 9 + f.from) * 0.04 : 0;
         });
-        ctx.light.color.setHex(t > 2 ? 0xff6050 : 0xffe0b0);
+        // Harsh, cold, flickering light: pale faces, not red ones
+        ctx.light.color.setHex(0xe8ecff);
+        ctx.light.intensity = t > 2 ? 22 * (Math.random() < 0.08 ? 0.3 : 1) : 10;
       }
     };
   }

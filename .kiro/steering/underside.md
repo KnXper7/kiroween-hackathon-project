@@ -45,3 +45,19 @@ Everything lives in `index.html`: the invitation, then (after the third RSVP) th
 
 ## Performance
 Adaptive quality lowers canvas resolution when frames run slow; static noise uses cached tiles; `--dread` updates only in 2% steps; the heartbeat corners animate opacity only. Avoid per-frame shadowBlur, per-pixel loops and CSS variables that repaint full-screen gradients.
+
+## Rules from playtesting
+- Nothing symmetric: faces lean, eyes mismatch, mouths are crooked, horns don't match, groups are jumbled.
+- The Grinner's smile climbs past the eyes toward the forehead; its jaw can drop open far past the chin (`open`).
+- Ambush at relief or hesitation (`ambush()` in main.js): finding the host, the tape ejecting, the right door, the second "Stay", being idle, almost escaping, hesitating at the doors. Spaced ≥ 6 s, flash-limited.
+- When something good happens, the long thing hands you its severed arm with a "WELL DONE" tag (`reward()`).
+- 3D scenes go through `post.js` (pmndrs/postprocessing) for grain, bloom, aberration and hit glitches.
+
+## v2: The Last Guest (`v2/`, the default other side)
+
+- Every threat has a **warning, a rule and a cost**: a red alarm with a draining bar states the rule in two to four words (HIDE, LOOK AT IT, DON'T MOVE, DON'T TURN AROUND, RUN). Breaking it costs a life; three lives, then YOU DIED and the lap restarts.
+- Rules must **contradict each other** across laps (look at the Face; never look at the one behind you) so the player has to read the alarm, not rely on habit.
+- The objective box is always on screen, and the thing to use glows. After 8 s stuck, a plainer hint appears.
+- **Variety:** no two laps use the same mechanic as their main beat. Interface tricks (the window whose × runs, the tab title, lying labels, self-typing RSVP, timer lies) live in `v2/js/tricks.js`, and each fires once or rarely.
+- **Relief is a trap:** after "IT'S GONE", it is allowed to come back once.
+- Gentle mode auto-passes every timed rule and skips ambushes, gore and tricks.
