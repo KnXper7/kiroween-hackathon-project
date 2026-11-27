@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   BEATS, beatAt, dreadAt, figureStep, createFlashLimiter, createScareGate,
   createBacktrackDetector, clockLabel, guestName, timecode, holdProgress,
-  tapeAt, minutesTowardThree, minutesLabel, errorCount
+  tapeAt, minutesTowardThree, minutesLabel, errorCount, limitScroll, countdown, applyGates, partyClock
 } from '../js/logic/underside.js';
 import { underside as COPY } from '../js/content.js';
 
@@ -31,7 +31,7 @@ test('beats come in story order and cover the whole track', () => {
     assert.ok(at >= index, 'beat went backwards');
     index = at;
   }
-  assert.equal(beatAt(0), 'gallery');
+  assert.equal(beatAt(0), 'hall');
   assert.equal(beatAt(1), 'exit');
 });
 
@@ -160,4 +160,65 @@ test('error windows only pile up, and never past the cap', () => {
     assert.ok(n >= previous && n <= 7);
     previous = n;
   }
+});
+
+test('scrolling fast never skips: the view moves at a capped speed and the scroll is pulled back', () => {
+  for (let run = 0; run < 500; run += 1) {
+    let y = 0;
+    let target = 0;
+    for (let i = 0; i < 200; i += 1) {
+      const dt = rand(0.005, 0.05);
+      target += rand(-200, 4000); // violent flicks
+      target = Math.max(0, target);
+      const out = limitScroll(y, target, dt, { maxSpeed: 900, lead: 900 });
+      assert.ok(Math.abs(out.y - y) <= 900 * dt + 1e-9, 'moved faster than the cap');
+      if (out.pullBackTo !== null) {
+        assert.ok(out.pullBackTo - out.y <= 900 + 1e-9);
+        target = out.pullBackTo;
+      }
+      assert.ok(target - out.y <= 900 + 1e-6 || out.pullBackTo !== null);
+      y = out.y;
+    }
+  }
+});
+
+test('the party clock counts down, never goes negative, and ends exactly once at zero', () => {
+  assert.equal(countdown(300000, 0).label, '05:00');
+  assert.equal(countdown(300000, 1).label, '05:00');
+  assert.equal(countdown(300000, 299001).label, '00:01');
+  assert.equal(countdown(300000, 999999).label, '00:00');
+  let previous = Infinity;
+  for (let i = 0; i < RUNS; i += 1) {
+    const elapsed = i * 200;
+    const c = countdown(300000, elapsed);
+    assert.ok(c.remaining >= 0 && c.remaining <= previous);
+    assert.equal(c.done, c.remaining === 0);
+    if (c.critical) assert.ok(c.urgent);
+    previous = c.remaining;
+  }
+});
+
+test('you can never scroll past a lock you have not opened', () => {
+  for (let i = 0; i < RUNS; i += 1) {
+    const gates = Array.from({ length: 6 }, (_, k) => ({ id: 'g' + k, y: rand(0, 20000), solved: Math.random() < 0.5 }));
+    const target = rand(0, 25000);
+    const { y, blockedBy } = applyGates(target, gates);
+    assert.ok(y <= target);
+    gates.filter((g) => !g.solved).forEach((g) => assert.ok(y <= g.y || target <= g.y));
+    if (blockedBy === null) assert.equal(y, target);
+  }
+});
+
+test('the party clock creeps up to exactly 3:00:00 AM', () => {
+  assert.equal(partyClock(600000, 0).clock, '2:50:00 AM');
+  assert.equal(partyClock(600000, 600000).clock, '3:00:00 AM');
+  assert.equal(partyClock(600000, 9e9).clock, '3:00:00 AM');
+  assert.equal(partyClock(600000, 61000).clock, '2:51:01 AM');
+});
+
+test('a lock stays shut when you are sitting exactly on it', () => {
+  const gates = [{ id: 'a', y: 1000.4, solved: false }];
+  assert.equal(applyGates(1000.4, gates).blockedBy, 'a');
+  assert.equal(applyGates(1000, gates).blockedBy, 'a');
+  assert.equal(applyGates(990, gates).blockedBy, null);
 });

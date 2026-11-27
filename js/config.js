@@ -50,6 +50,26 @@ export const SPLINE_SCENES = Object.freeze({
 export const UNDERSIDE = Object.freeze({
   escapedKey: 'nocturne-night:escaped',
   familyImage: './assets/underside/found/hope-couple-spirit.jpg', // Smile Tape 1
+  // Images the team generated for this project (see ASSETS.md).
+  scares: Object.freeze({
+    final: Object.freeze({ src: './assets/underside/generated/doorway-1990s-photo.jpg', focus: [0.62, 0.47] }),
+    backtrack: Object.freeze({ src: './assets/underside/generated/bedroom-figure.jpg', focus: [0.68, 0.2] })
+  }),
+  // One frame per step of the approaching figure: drawn corridor (null), then real footage.
+  broadcastFootage: Object.freeze([
+    null,
+    './assets/underside/generated/mall-camera.jpg',
+    './assets/underside/generated/stairwell-tall-figure.jpg',
+    null,
+    './assets/underside/generated/hallway-found-footage.jpg'
+  ]),
+  // The party clock at the top of the screen. Reach the way out before it hits zero.
+  timeLimitMs: 600000, // 2:50 AM → 3:00 AM
+  gentleExtraMs: 120000,
+  // Voices recorded with ElevenLabs (via Higgsfield); browser speech is the fallback.
+  voiceDir: './assets/underside/voice/',
+  maxScreensPerSecond: 1.15, // scroll speed limit, in screen heights per second
+  crtResolution: 0.6,
   // Public-domain photographs and prints used on room walls and in single-frame flashes (see ASSETS.md).
   foundImages: Object.freeze([
     'mumler-unidentified.jpg',
@@ -62,7 +82,11 @@ export const UNDERSIDE = Object.freeze({
     'double-exposure-ghost.jpg',
     'mumler-herrod.jpg',
     'colley-spirit.jpg'
-  ].map((file) => `./assets/underside/found/${file}`)),
+  ].map((file) => `./assets/underside/found/${file}`).concat([
+    'crt-no-signal.jpg',
+    'flooded-church.jpg',
+    'dinner-mask.jpg'
+  ].map((file) => `./assets/underside/generated/${file}`))),
   eyePairs: 34,
   roomTotal: 7,
   pinnedResolution: 0.6, // low internal resolution = soft, analog

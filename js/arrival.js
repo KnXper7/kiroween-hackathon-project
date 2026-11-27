@@ -1,7 +1,6 @@
 import { createTimelines } from './anim/timelines.js';
 import { createTitleSequence } from './title-sequence.js';
 import { createUnderside } from './underside/main.js';
-import './stinger.js';
 
 const $ = (selector) => document.querySelector(selector);
 const gsap = window.gsap;
@@ -43,7 +42,32 @@ const leaveIntro = ({ skipped = false } = {}) => {
   }
 };
 
-if (titleSequence && arrivalScene) {
+// The other side lives on the same page as the invitation. It starts when the crossing finishes
+// (script.js), or straight away with ?descend in the URL.
+let begun = false;
+export function beginTheOtherSide() {
+  if (begun) return;
+  begun = true;
+  // Put the invitation away; the other side takes over the page.
+  // The invitation's shake and glitch animations can leave transforms/filters on <html> and <body>.
+  // A transform there would trap every full-screen layer inside an empty body, so clear them.
+  [document.documentElement, document.body].forEach((el) => {
+    window.gsap?.set(el, { clearProps: 'transform,filter,willChange' });
+    el.style.transform = '';
+    el.style.filter = '';
+    el.style.willChange = '';
+  });
+  document.body.classList.remove('is-haunted', 'is-shaking--first', 'is-shaking--second', 'is-shaking--third', 'is-glitching', 'is-crossing');
+  document.body.classList.add('is-other-side');
+  $('#other-side').hidden = false;
+  titleSequence.hidden = false;
+  window.scrollTo(0, 0);
+  startTitle();
+  startSound();
+}
+
+function startTitle() {
+  if (!titleSequence || !arrivalScene) return;
   // Reduced motion: no animated sequence, go straight to the arrival screen.
   if (reducedMotion) {
     showArrival();
@@ -64,12 +88,15 @@ if (titleSequence && arrivalScene) {
   }
 }
 
+
+
 // ---------- Sound ----------
 const arrivalAudio = $('#arrival-audio');
 const soundToggle = $('#sound-toggle');
 const soundLabel = $('#sound-label');
 
-if (arrivalAudio && soundToggle && soundLabel) {
+function startSound() {
+  if (!arrivalAudio || !soundToggle || !soundLabel) return;
   const updateToggle = () => {
     const isPlaying = !arrivalAudio.paused && !arrivalAudio.muted;
     const hasEnded = arrivalAudio.ended;
@@ -138,6 +165,9 @@ if (reducedMotion) descendGentle?.setAttribute('data-recommended', 'true');
 const startDescent = (gentle) => {
   if (descending) return;
   descending = true;
+  // Full screen, so nothing outside the world is visible. Browsers allow this only on a click.
+  const root = document.documentElement;
+  (root.requestFullscreen?.({ navigationUI: 'hide' }) ?? root.webkitRequestFullscreen?.())?.catch?.(() => {});
   window.__nocturneLenis?.destroy?.();
   document.documentElement.classList.remove('has-lenis', 'lenis', 'lenis-smooth');
 
@@ -163,3 +193,9 @@ const startDescent = (gentle) => {
 
 descend?.addEventListener('click', () => startDescent(false));
 descendGentle?.addEventListener('click', () => startDescent(true));
+
+// ?descend skips the invitation and starts on the other side (handy for demos and testing).
+if (new URLSearchParams(location.search).has('descend')) {
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', beginTheOtherSide, { once: true });
+  else beginTheOtherSide();
+}

@@ -17,8 +17,9 @@ const FAMILY_FACES = [
   { x: 0.462, y: 0.255, w: 0.13 }
 ];
 
-export function drawTape(ctx, w, h, { tape, index, phase, t, name, image, now, rules }) {
-  if (phase === 'label') return drawCassette(ctx, w, h, tape, index, name, t);
+export function drawTape(ctx, w, h, { tape, index, phase, t, name, image, now, rules, onTv = false }) {
+  // On the 3D TV the cassette sits on the shelf, so the screen shows NO SIGNAL while it loads.
+  if (phase === 'label') return onTv ? drawNoSignal(ctx, w, h, { now, t }) : drawCassette(ctx, w, h, tape, index, name, t);
   if (phase === 'blue') return drawBlue(ctx, w, h, t);
   if (index === 0) drawFamily(ctx, w, h, image, t, now);
   else if (index === 1) drawRules(ctx, w, h, rules, t, now);
@@ -83,6 +84,45 @@ function drawCassette(ctx, w, h, tape, index, name, t) {
   ctx.fillText(`TAPE ${index + 1}/3`, 0, -ch * 0.125);
   ctx.restore();
   grain(ctx, w, h, 0.12);
+}
+
+/** Snow, a face in the snow, and NO SIGNAL. */
+export function drawNoSignal(ctx, w, h, { now = 0, t = 0 } = {}) {
+  const img = ctx.createImageData(w, h);
+  const data = img.data;
+  for (let y = 0; y < h; y += 1) {
+    const row = Math.random() < 0.06 ? 1.6 : 0.7 + Math.random() * 0.5; // bright horizontal streaks
+    for (let x = 0; x < w; x += 1) {
+      const i = (y * w + x) * 4;
+      const v = Math.min(255, Math.random() * 190 * row);
+      data[i] = v;
+      data[i + 1] = v * 0.94;
+      data[i + 2] = v * 0.94;
+      data[i + 3] = 255;
+    }
+  }
+  ctx.putImageData(img, 0, 0);
+  // The face surfaces in the snow and sinks again.
+  const presence = 0.25 + 0.35 * Math.max(0, Math.sin(now / 900 + t * 3));
+  ctx.save();
+  ctx.globalCompositeOperation = 'multiply';
+  drawGrinner(ctx, w, h, { t: now / 1000, scale: 0.62, cy: h * 0.42, dark: false, grin: 1, blood: 0.8, stare: 0.6, alpha: presence + 0.3 });
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = presence;
+  drawGrinner(ctx, w, h, { t: now / 1000, scale: 0.62, cy: h * 0.42, dark: false, grin: 1, blood: 0.8, stare: 0.6 });
+  ctx.restore();
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(0, h * 0.72, w, h * 0.12);
+  ctx.font = `${Math.round(h * 0.1)}px ${MONO}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = 'rgba(255,60,60,0.6)';
+  ctx.fillText('NO SIGNAL', w / 2 + 3, h * 0.78);
+  ctx.fillStyle = 'rgba(60,220,255,0.6)';
+  ctx.fillText('NO SIGNAL', w / 2 - 3, h * 0.78);
+  ctx.fillStyle = '#f2efe6';
+  ctx.fillText('NO SIGNAL', w / 2, h * 0.78);
 }
 
 function drawBlue(ctx, w, h, t) {

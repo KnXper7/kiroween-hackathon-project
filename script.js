@@ -1,5 +1,5 @@
 import { copy } from './js/content.js';
-import { ESCAPE_DESTINATION, MAX_ATTEMPTS, MAX_AMBIENT_EFFECTS, TIMING } from './js/config.js';
+import { MAX_ATTEMPTS, MAX_AMBIENT_EFFECTS, TIMING } from './js/config.js';
 import {
   ambientCount,
   ambientSpeed,
@@ -251,7 +251,8 @@ if (form) {
       activeGlitchTimeline = null;
       document.body.classList.remove('is-glitching', 'is-crossing');
       transition({ type: 'CROSSING_DONE' });
-      window.location.assign(ESCAPE_DESTINATION);
+      // Same page: the invitation gives way to the other side.
+      import('./js/arrival.js').then(({ beginTheOtherSide }) => beginTheOtherSide());
     };
 
     const beginHandoff = () => {

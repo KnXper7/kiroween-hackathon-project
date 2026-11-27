@@ -13,6 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;800&family=VT323&family=Caveat:wght@600&display=swap" rel="stylesheet">
   </head>
   <body>
     <div class="page-design-elements">
@@ -272,10 +273,257 @@
     </dialog>
 
     <!-- GSAP / Lenis / JS Libraries -->
+    <!-- The other side: title sequence, arrival, and the Underside (one page, no second site). -->
+    <div class="other-side" id="other-side" hidden>
+    <section class="title-sequence" id="title-sequence" aria-label="Nocturne Night title sequence" hidden>
+      <div class="title-sequence__haze" id="title-haze"></div>
+      <canvas class="title-sequence__canvas" id="title-canvas" role="img" aria-label="The words Nocturne Night glow red in the dark"></canvas>
+      <canvas class="title-sequence__bloom" id="title-bloom" aria-hidden="true"></canvas>
+      <div class="title-sequence__vignette"></div>
+      <div class="title-sequence__grain" id="title-grain"></div>
+      <button class="button button--quiet title-sequence__skip" id="skip-intro" type="button">Skip intro</button>
+    </section>
+    <main class="escape-arrival" aria-labelledby="arrival-title" id="arrival-scene" hidden>
+      <section class="escape-arrival__content">
+        <p class="escape-arrival__signal">Signal lost · Location unknown</p>
+        <h1 id="arrival-title">The other side.</h1>
+        <p class="escape-arrival__message" role="status">
+          The lights are gone. Something heard you cross. The way forward is still hidden.
+        </p>
+        <div class="descent" id="descent">
+          <p class="descent__warning">Headphones. Lights off. Scroll slowly. <span>Flashing images · loud sounds · jumpscares · blood.</span></p>
+          <div class="descent__actions">
+            <button class="button button--primary" id="descend" type="button">Go deeper</button>
+            <button class="button button--quiet" id="descend-gentle" type="button">Gentle mode</button>
+          </div>
+        </div>
+        <div class="escape-orb-elements">
+          <div class="orb-1">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" width="70" height="70" overflow="visible" class="orb-1-child" aria-hidden="true">
+              <defs>
+                <filter id="orb-blur-1" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="16" />
+                </filter>
+                <radialGradient id="soft-red-orb-1" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ff3838" stop-opacity="1" />
+                  <stop offset="30%" stop-color="#f21d1d" stop-opacity="0.88" />
+                  <stop offset="65%" stop-color="#b80d0d" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="#b80d0d" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              <circle cx="45" cy="45" r="42" fill="url(#soft-red-orb-1)" filter="url(#orb-blur-1)" />
+            </svg>
+          </div>
+          <div class="orb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 90" width="70" height="70" overflow="visible" class="orb-2-child" aria-hidden="true">
+              <defs>
+                <filter id="orb-blur-2" x="-100%" y="-100%" width="300%" height="300%">
+                  <feGaussianBlur stdDeviation="16" />
+                </filter>
+                <radialGradient id="soft-red-orb-2" cx="50%" cy="50%" r="50%">
+                  <stop offset="0%" stop-color="#ff3838" stop-opacity="1" />
+                  <stop offset="30%" stop-color="#f21d1d" stop-opacity="0.88" />
+                  <stop offset="65%" stop-color="#b80d0d" stop-opacity="0.35" />
+                  <stop offset="100%" stop-color="#b80d0d" stop-opacity="0" />
+                </radialGradient>
+              </defs>
+              <circle cx="45" cy="45" r="42" fill="url(#soft-red-orb-2)" filter="url(#orb-blur-2)" />
+            </svg>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- The Underside: an upside-down house you have to escape before 3:00 AM (js/underside/main.js). -->
+    <div class="underside" id="underside" hidden>
+      <div class="underside__world" id="underside-world" aria-hidden="true">
+        <div class="underside__track" id="underside-track">
+          <section class="u-beat u-gallery" data-beat="hall">
+          <figure class="u-frame u-frame--0">
+            <div class="u-frame__inner"><img src="./assets/underside/found/nightmare-fuseli.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 1 · 1781</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--1">
+            <div class="u-frame__inner"><img src="./assets/underside/generated/dinner-mask.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 2 · 10·31·02</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--2">
+            <div class="u-frame__inner"><img src="./assets/underside/found/hidden-mother-1.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 3 · 18—</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--3">
+            <div class="u-frame__inner"><img src="./assets/underside/generated/disposable-hand-doorway.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 4 · 19—</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--0">
+            <div class="u-frame__inner"><img src="./assets/underside/found/redon-cactus-man.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 5 · 1881</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--1">
+            <div class="u-frame__inner"><img src="./assets/underside/found/mumler-french.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 6 · 1869</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--2">
+            <div class="u-frame__inner"><img src="./assets/underside/generated/flooded-church.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 7 · 19—</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--3">
+            <div class="u-frame__inner"><img src="./assets/underside/found/bocklin-death.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 8 · 1872</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--0">
+            <div class="u-frame__inner"><img src="./assets/underside/found/smiling-spider-redon.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 9 · 1881</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--1">
+            <div class="u-frame__inner"><img src="./assets/underside/found/sleep-of-reason-goya.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 10 · 1799</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--2">
+            <div class="u-frame__inner"><img src="./assets/underside/found/saturn-goya.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>No. 11 · 1823</figcaption>
+          </figure>
+          <figure class="u-frame u-frame--3" data-host>
+            <div class="u-frame__inner"><img src="./assets/underside/found/dore-inferno.jpg" alt="" loading="lazy" decoding="async"><canvas class="u-frame__ghost"></canvas></div>
+            <figcaption>THE HOST</figcaption>
+          </figure>
+          </section>
+          <section class="u-beat u-tapes" data-beat="tape"><div class="u-tapes__glow"></div></section>
+          <section class="u-beat u-nursery" data-beat="nursery"></section>
+          <section class="u-beat u-pinned u-eyes" data-beat="eyes"><canvas id="eyes-canvas"></canvas></section>
+          <section class="u-beat u-rooms" data-beat="rooms">
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          <div class="u-room"><canvas></canvas><span class="u-room__label">ROOM</span></div>
+          </section>
+          <section class="u-beat u-leave" data-beat="leave"></section>
+          <section class="u-beat u-pinned u-broadcast" data-beat="hallway"><canvas id="broadcast-canvas"></canvas></section>
+          <section class="u-beat u-devil" data-beat="devil"></section>
+          <section class="u-beat u-exit" data-beat="exit"><canvas id="exit-canvas"></canvas></section>
+        </div>
+      </div>
+      <canvas class="underside__stage" id="hall-canvas" aria-hidden="true"></canvas>
+      <canvas class="underside__stage" id="tapes-canvas" aria-hidden="true"></canvas>
+      <canvas class="underside__stage underside__stage--3d" id="tapes-3d" aria-hidden="true"></canvas>
+      <canvas class="underside__stage" id="nursery-canvas" aria-hidden="true"></canvas>
+      <canvas class="underside__stage" id="devil-canvas" aria-hidden="true"></canvas>
+      <div class="underside__spline" id="underside-spline"></div>
+      <canvas class="underside__blood" id="blood-canvas" aria-hidden="true"></canvas>
+      <canvas class="underside__static" id="underside-static" aria-hidden="true"></canvas>
+      <div class="underside__scanlines" aria-hidden="true"></div>
+      <div class="underside__tracking" id="underside-tracking" aria-hidden="true"></div>
+      <div class="underside__neon" aria-hidden="true"></div>
+      <div class="underside__vignette" aria-hidden="true"></div>
+      <div class="underside__osd" aria-hidden="true">
+        <span id="osd-mode">PLAY ▶</span>
+        <span id="osd-time">00:00:00:00</span>
+      </div>
+      <div class="underside__timer" id="party-timer" role="timer" aria-label="Time left before the party ends at 3:00 AM">
+        <span class="underside__timer-text" id="party-timer-text">10:00</span>
+        <span class="underside__timer-label" aria-hidden="true">UNTIL THE PARTY ENDS · 3:00 AM</span>
+      </div>
+      <div class="underside__radio" id="radio" hidden aria-live="off">
+        <span class="underside__radio-band" aria-hidden="true">FM 88.3</span>
+        <span class="underside__radio-meter" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+        <span class="underside__radio-text" id="radio-text"></span>
+      </div>
+
+      <!-- Locks: you cannot go deeper until each one is opened. -->
+      <div class="gate" id="gate-host" hidden>
+        <p class="gate__prompt">Find the host. <b>Click their portrait.</b></p>
+      </div>
+      <div class="gate gate--vcr" id="gate-vcr" hidden>
+        <p class="gate__prompt">It turned itself on. <b>Make it stop.</b></p>
+        <div class="vcr" role="group" aria-label="VCR controls">
+          <span class="vcr__brand" aria-hidden="true">NOCTURNE · VHS HQ</span>
+          <span class="vcr__display" id="vcr-display" aria-hidden="true">PLAY 0:00</span>
+          <button class="vcr__button" type="button" id="vcr-stop" aria-label="Stop">■</button>
+          <button class="vcr__button" type="button" id="vcr-eject" aria-label="Eject">⏏</button>
+        </div>
+      </div>
+      <div class="gate gate--music" id="gate-music" hidden>
+        <p class="gate__prompt" id="music-prompt">The music box has stopped. <b>Wind it.</b></p>
+        <button class="crank-button" type="button" id="music-wind" aria-describedby="music-prompt">
+          <span class="crank-button__meter" id="music-meter" aria-hidden="true"></span>
+          <span class="crank-button__label">Hold to wind</span>
+        </button>
+        <span class="gate__count" id="music-count" aria-live="polite"></span>
+      </div>
+      <div class="gate gate--doors" id="gate-doors" hidden>
+        <p class="gate__prompt">Three doors. One of them is the way down. <b>Choose.</b></p>
+        <div class="doors">
+          <button class="door-button" type="button" data-door="0" aria-label="Left door"><span class="door-button__knob"></span></button>
+          <button class="door-button" type="button" data-door="1" aria-label="Middle door"><span class="door-button__knob"></span></button>
+          <button class="door-button" type="button" data-door="2" aria-label="Right door"><span class="door-button__knob"></span></button>
+        </div>
+      </div>
+      <div class="gate gate--dialog" id="gate-leave" hidden>
+        <div class="retro-dialog retro-dialog--gate" role="alertdialog" aria-labelledby="leave-title" aria-describedby="leave-body">
+          <div class="retro-dialog__bar"><span id="leave-title">NOCTURNE NIGHT</span><button type="button" class="retro-dialog__x" id="leave-x" aria-label="Close">×</button></div>
+          <div class="retro-dialog__body"><span class="retro-dialog__icon" aria-hidden="true">?</span><p id="leave-body">Are you sure you want to leave the party?</p></div>
+          <div class="retro-dialog__actions"><button type="button" class="retro-dialog__ok" data-stay>Stay</button><button type="button" class="retro-dialog__ok" data-stay>Stay</button></div>
+        </div>
+      </div>
+      <form class="gate gate--rsvp" id="gate-rsvp" hidden autocomplete="off">
+        <label class="gate__prompt" for="rsvp-name">To leave, <b>cancel your RSVP</b>. Type your name.</label>
+        <div class="rsvp-card">
+          <input class="rsvp-card__input" id="rsvp-name" name="rsvp-name" maxlength="40" spellcheck="false">
+          <button class="rsvp-card__submit" type="submit">Cancel RSVP</button>
+        </div>
+      </form>
+      <button class="take-it" id="take-it" type="button" hidden>Take it</button>
+
+      <div class="underside__pulse" id="pulse" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <canvas class="underside__crack" id="crack-canvas" aria-hidden="true"></canvas>
+      <canvas class="underside__crack" id="scratch-canvas" aria-hidden="true"></canvas>
+      <div class="underside__intrusion" id="intrusion" hidden><p id="intrusion-text"></p></div>
+      <canvas class="underside__scare" id="scare-canvas" hidden aria-hidden="true"></canvas>
+      <canvas class="underside__stab" id="stab-canvas" hidden aria-hidden="true"></canvas>
+      <div class="underside__ended" id="party-ended" hidden role="alert"><p id="party-ended-text"></p></div>
+      <div class="underside__escape" id="escape-ui" hidden>
+        <button class="underside__escape-button" id="escape-hold" type="button" aria-describedby="escape-hint">
+          <span class="underside__escape-meter" id="escape-meter" aria-hidden="true"></span>
+          <span>Hold to escape</span>
+        </button>
+        <span class="sr-only" id="escape-hint">Press and hold, or hold Space.</span>
+      </div>
+      <a class="underside__leave" id="underside-leave" href="./index.html">Leave</a>
+      <p class="sr-only" id="underside-live" aria-live="polite"></p>
+    </div>
+    <div class="underside-spacer" id="underside-spacer" aria-hidden="true"></div>
+
+    <section class="outside" id="outside" hidden aria-labelledby="outside-title">
+      <h2 id="outside-title" tabindex="-1">You got out.</h2>
+      <p>The party is still on. See you there.</p>
+      <a class="button button--primary" href="./index.html">Back to Nocturne Night</a>
+    </section>
+    <button class="button button--primary escape-sound-toggle" id="sound-toggle" type="button" aria-pressed="false">
+      <svg class="sound-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+        <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5H4z" fill="currentColor"></path>
+        <g class="sound-icon__waves">
+          <path d="M15.5 9a4 4 0 0 1 0 6"></path>
+          <path d="M18 6.5a8 8 0 0 1 0 11"></path>
+        </g>
+        <g class="sound-icon__mute">
+          <path d="M16 9.5l5 5"></path>
+          <path d="M21 9.5l-5 5"></path>
+        </g>
+      </svg>
+      <span class="sound-label" id="sound-label">Sound: on</span>
+    </button>
+    <audio id="arrival-audio" src="./audio/stranger-things.mp3" preload="auto"></audio>
+
+    </div>
+
+    <script type="importmap">{ "imports": { "three": "./vendor/three/three.module.js" } }</script>
     <script src="https://unpkg.com/lenis@1.3.27/dist/lenis.min.js"></script>
     <script src="gsap.min.js"></script>
     <script src="haunting-fallback.js"></script>
     <script type="module" src="script.js"></script>
-    <script type="module" src="js/stinger.js"></script>
+    <script type="module" src="js/arrival.js"></script>
   </body>
 </html>

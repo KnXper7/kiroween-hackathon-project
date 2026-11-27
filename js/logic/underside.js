@@ -12,12 +12,14 @@ export const smoothstep = (edge0, edge1, x) => {
  * Each beat starts where the previous one ends.
  */
 export const BEATS = Object.freeze([
-  Object.freeze({ id: 'gallery', end: 0.15 }),
-  Object.freeze({ id: 'tapes', end: 0.36 }),
-  Object.freeze({ id: 'eyes', end: 0.47 }),
-  Object.freeze({ id: 'rooms', end: 0.62 }),
-  Object.freeze({ id: 'errors', end: 0.74 }),
-  Object.freeze({ id: 'broadcast', end: 0.92 }),
+  Object.freeze({ id: 'hall', end: 0.1 }),      // the party hallway: nobody's here
+  Object.freeze({ id: 'tape', end: 0.2 }),      // a TV that won't turn off
+  Object.freeze({ id: 'nursery', end: 0.32 }),  // the doll and the music box
+  Object.freeze({ id: 'eyes', end: 0.38 }),
+  Object.freeze({ id: 'rooms', end: 0.52 }),    // the doors, the radio, the choice
+  Object.freeze({ id: 'leave', end: 0.6 }),     // "are you sure you want to leave?"
+  Object.freeze({ id: 'hallway', end: 0.78 }),  // something comes; it gives you the key
+  Object.freeze({ id: 'devil', end: 0.9 }),     // the host
   Object.freeze({ id: 'exit', end: 1 })
 ]);
 
@@ -171,4 +173,58 @@ export function minutesLabel(minutes) {
 /** How many error dialogs should be open at local progress q of the errors beat. */
 export function errorCount(q, max = 7) {
   return Math.min(max, Math.floor(clamp(q / 0.7) * max));
+}
+
+/**
+ * Scroll speed limit: the tape cannot be fast-forwarded past the story.
+ * Moves `current` toward `target` by at most `maxSpeed` px/s, and reports how far the visitor's real
+ * scroll position should be pulled back so it never runs more than `lead` px ahead.
+ * Returns { y, pullBackTo (number or null), fastForward (bool) }.
+ */
+export function limitScroll(current, target, dtSeconds, { maxSpeed = 900, lead = 900, smoothing = 9 } = {}) {
+  const eased = current + (target - current) * (1 - Math.exp(-dtSeconds * smoothing));
+  const maxStep = maxSpeed * dtSeconds;
+  const y = Math.max(current - maxStep, Math.min(current + maxStep, eased));
+  const ahead = target - y;
+  return {
+    y,
+    pullBackTo: ahead > lead ? y + lead : null,
+    fastForward: ahead > lead * 0.35
+  };
+}
+
+/**
+ * The party clock at the top of the screen. Counts down from totalMs; time spent locked in a
+ * scripted moment doesn't count. Returns the label and how worried the visitor should be.
+ */
+export function countdown(totalMs, elapsedMs) {
+  const remaining = Math.max(0, Math.round(totalMs - Math.max(0, elapsedMs)));
+  const seconds = Math.ceil(remaining / 1000);
+  const label = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+  return { remaining, label, urgent: remaining <= 60000, critical: remaining <= 20000, done: remaining === 0 };
+}
+
+/**
+ * Escape-room locks. Each gate sits at a scroll position; you cannot get past the first unsolved
+ * gate in front of you. Returns the allowed position and which gate (if any) is blocking.
+ */
+export function applyGates(targetY, gates) {
+  // A lock holds while you are at it (within 2 px), not only past it; otherwise being pulled back
+  // onto the lock would release it on the very next frame.
+  const blocking = [...gates].sort((a, b) => a.y - b.y).find((gate) => !gate.solved && targetY > gate.y - 2);
+  return blocking ? { y: Math.min(targetY, blocking.y), blockedBy: blocking.id } : { y: targetY, blockedBy: null };
+}
+
+/**
+ * The party clock reads like a bedside clock creeping toward 3:00 AM, the devil's hour.
+ * elapsed 0 shows (3:00 AM minus totalMs); elapsed >= totalMs shows 3:00:00 AM.
+ */
+export function partyClock(totalMs, elapsedMs) {
+  const c = countdown(totalMs, elapsedMs);
+  const shown = 3 * 3600 - Math.ceil(c.remaining / 1000); // seconds after midnight
+  const h = Math.floor(shown / 3600);
+  const m = Math.floor(shown / 60) % 60;
+  const sec = shown % 60;
+  const pad = (n) => String(n).padStart(2, '0');
+  return { ...c, clock: `${h || 12}:${pad(m)}:${pad(sec)} AM` };
 }
